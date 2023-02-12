@@ -19,7 +19,7 @@
 #include "semphr.h"
 
 /* Application Headers */
-#include "usart.h"
+#include "Peripherals/usart.h"
 
 /* Macros */
 
@@ -35,16 +35,17 @@ uint8_t DebugBuf[MAX_USART_BUF_SIZE];
 
 /* Rx ISR Callback */
 
-void HAL_RxCpltCallback(UART_HandleTypeDef *huart){
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
     
     BaseType_t xStatus ={0};
-    HAL_GPIO_Toggle_Pin(LD1_GPIO, LD1_Pin);
+    HAL_GPIO_TogglePin(LD3_GPIO_Port, LD3_Pin);
 
-    if(huart == &haurt3){
+    if(huart == &huart3){
         xStatus = xQueueSendToBackFromISR(DebugQueue,DebugBuf,NULL);
+        Request_Debug_Read();
     }
-    if(xStatus == pdTRUE){
-        HAL_GPIO_Toggle_Pin(LD1_GPIO, LD1_Pin);
+    if(xStatus == pdPASS){
+        HAL_GPIO_TogglePin(LD3_GPIO_Port, LD3_Pin);
     }
 
     return;
@@ -60,10 +61,9 @@ void Request_Debug_Read(void){
 
 void EnableDebug(void){
     
-    if(NULL == (DebugQueue = 
-        xQueueCreate(MAX_USART_QUEUE_SIZE, sizeof(uint8_t)))) return -1;
+    DebugQueue = xQueueCreate(MAX_USART_QUEUE_SIZE, sizeof(uint8_t));
 
-    if(NULL == (DebugMutex = xSempahoreCreateMutex(void))) return -1;
+    DebugMutex = xSemaphoreCreateMutex();
 
     Request_Debug_Read();
 
@@ -110,8 +110,7 @@ void TASKDebugParser(void){
     uint8_t in;
     uint8_t pos = 0;
     uint8_t buffer[50];
-    
-    whlie(true){
+    while(1){
         xStatus = xQueueReceive(DebugQueue,&in,portMAX_DELAY);
         if(xStatus == pdFALSE) continue;
         buffer[pos++] = in;

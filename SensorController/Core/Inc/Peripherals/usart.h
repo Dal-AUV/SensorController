@@ -29,7 +29,7 @@
 
 /* Public Variables */
 extern QueueHandle_t DebugQueue;
-
+extern UART_HandleTypeDef huart3;
 
 /* Public Functions */
 /**
@@ -41,7 +41,7 @@ void EnableDebug(void);
  * @brief 
  * 
  */
-void Request_Debug_Read(void)
+void Request_Debug_Read(void);
 /**
  * @brief 
  * 

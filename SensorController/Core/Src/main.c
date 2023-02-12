@@ -23,7 +23,10 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "FreeRTOS.h"
+#include "task.h"
+#include "System/TaskCtrl.h"
+#include "Peripherals/usart.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -120,7 +123,9 @@ int main(void)
   MX_USART3_UART_Init();
   MX_I2C1_Init();
   /* USER CODE BEGIN 2 */
-
+  EnableDebug();
+  SysTask_Init();
+  vTaskStartScheduler();
   /* USER CODE END 2 */
 
   /* USER CODE BEGIN RTOS_MUTEX */
