@@ -10,11 +10,13 @@ RM := rm -rf
 # All of the sources participating in the build are defined here
 -include sources.mk
 -include Middlewares/Third_Party/FreeRTOS/Source/portable/MemMang/subdir.mk
--include Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F/subdir.mk
+-include Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM7/r0p1/subdir.mk
 -include Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS/subdir.mk
 -include Middlewares/Third_Party/FreeRTOS/Source/subdir.mk
--include Drivers/STM32F3xx_HAL_Driver/Src/subdir.mk
+-include Drivers/STM32F7xx_HAL_Driver/Src/subdir.mk
 -include Core/Startup/subdir.mk
+-include Core/Src/System/subdir.mk
+-include Core/Src/Peripherals/subdir.mk
 -include Core/Src/subdir.mk
 -include objects.mk
 
@@ -38,34 +40,34 @@ $(wildcard ../makefile.init) \
 $(wildcard ../makefile.targets) \
 
 
-BUILD_ARTIFACT_NAME := ThrustController
+BUILD_ARTIFACT_NAME := SensorController
 BUILD_ARTIFACT_EXTENSION := elf
 BUILD_ARTIFACT_PREFIX :=
 BUILD_ARTIFACT := $(BUILD_ARTIFACT_PREFIX)$(BUILD_ARTIFACT_NAME)$(if $(BUILD_ARTIFACT_EXTENSION),.$(BUILD_ARTIFACT_EXTENSION),)
 
 # Add inputs and outputs from these tool invocations to the build variables 
 EXECUTABLES += \
-ThrustController.elf \
+SensorController.elf \
 
 MAP_FILES += \
-ThrustController.map \
+SensorController.map \
 
 SIZE_OUTPUT += \
 default.size.stdout \
 
 OBJDUMP_LIST += \
-ThrustController.list \
+SensorController.list \
 
 
 # All Target
 all: main-build
 
 # Main-build Target
-main-build: ThrustController.elf secondary-outputs
+main-build: SensorController.elf secondary-outputs
 
 # Tool invocations
-ThrustController.elf ThrustController.map: $(OBJS) $(USER_OBJS) C:\Users\wyatt\OneDrive\Documents\GitHub\DAT-Firmware\ThrustController\STM32F334R8TX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "ThrustController.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"C:\Users\wyatt\OneDrive\Documents\GitHub\DAT-Firmware\ThrustController\STM32F334R8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="ThrustController.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+SensorController.elf SensorController.map: $(OBJS) $(USER_OBJS) C:\Users\wyatt\OneDrive\Documents\GitHub\DAT-Firmware\SensorController\STM32F767ZITX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "SensorController.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m7 -T"C:\Users\wyatt\OneDrive\Documents\GitHub\DAT-Firmware\SensorController\STM32F767ZITX_FLASH.ld" --specs=nosys.specs -Wl,-Map="SensorController.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv5-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 
@@ -74,14 +76,14 @@ default.size.stdout: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
 	@echo 'Finished building: $@'
 	@echo ' '
 
-ThrustController.list: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-objdump -h -S $(EXECUTABLES) > "ThrustController.list"
+SensorController.list: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-objdump -h -S $(EXECUTABLES) > "SensorController.list"
 	@echo 'Finished building: $@'
 	@echo ' '
 
 # Other Targets
 clean:
-	-$(RM) ThrustController.elf ThrustController.list ThrustController.map default.size.stdout
+	-$(RM) SensorController.elf SensorController.list SensorController.map default.size.stdout
 	-@echo ' '
 
 secondary-outputs: $(SIZE_OUTPUT) $(OBJDUMP_LIST)
