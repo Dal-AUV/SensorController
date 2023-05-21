@@ -33,6 +33,32 @@ SemaphoreHandle_t DebugMutex;
 uint8_t DebugBuf[MAX_USART_BUF_SIZE];
 /* Private Prototypes */
 
+
+void UART_Init(UART_Interface * handle){
+    assert(handle);
+    // Check if the handle has already been initialized
+
+    // Configure the HAL handle
+
+    // Configure the RTOS Resources
+    
+
+}
+
+void UART_DeInit(UART_Interface * handle){
+    assert(handle);
+    
+    // Check if the handle has already been initialized
+
+    // De-Init HAL layer
+
+    // De-allocate RTOS Resources
+
+}
+
+
+
+
 /* Rx ISR Callback */
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
