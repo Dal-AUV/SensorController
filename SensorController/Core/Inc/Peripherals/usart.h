@@ -12,6 +12,7 @@
 #include <stdarg.h>
 #include "main.h"
 #include "FreeRTOS.h"
+#include <stdbool.h>
 
 #include "queue.h"
 
@@ -29,14 +30,14 @@ typedef enum UART_STATUS{
  * @brief 
  * 
  */
-typedef UART_Interface{
+typedef struct UART_Interface{
     
-    UART_HandleTypeDef *uart_h,
-    QueueHandle_t      *queue_h,
-    SemaphoreHandle_t  *sem_tx,
-    SemaphoreHandle_t  *sem_rx,
-    bool                init, 
-    UART_STATUS_t       status,
+    UART_HandleTypeDef *uart_h;
+    QueueHandle_t      *queue_h;
+    SemaphoreHandle_t  *sem_tx;
+    SemaphoreHandle_t  *sem_rx;
+    bool                init;
+    UART_STATUS_t       status;
 
 }DAT_USART_Handle_t;
 
@@ -47,19 +48,19 @@ typedef UART_Interface{
  * by the user before calling
  * @param handle 
  */
-UART_Init(UART_Interface * handle);
+void UART_Init(DAT_USART_Handle_t * handle);
 /**
  * @brief Function to deinitialize a uart interface
  * 
  * @param handle 
  */
-UART_DeInit(UART_Interface * handle);
+void UART_DeInit(DAT_USART_Handle_t * handle);
 /**
  * @brief Write data to a uart interface
  * 
  * @param handle 
- */
-UART_Write(UART_Interface * handle, uint8_t * buf, uint16_t length);
+*/
+void UART_Write(DAT_USART_Handle_t * handle, uint8_t * buf, uint16_t length);
 /* Public Functions */
 /**
  * @brief Function to enable the uart isr callbacks
