@@ -17,7 +17,6 @@
 #include "FreeRTOS.h"
 #include "queue.h"
 #include "semphr.h"
-
 /* Application Headers */
 #include "Peripherals/usart.h"
 
@@ -34,44 +33,73 @@ uint8_t DebugBuf[MAX_USART_BUF_SIZE];
 /* Private Prototypes */
 
 
-void UART_Init(UART_Interface * handle){
+void UART_Init(DAT_USART_Handle_t * handle){
     assert(handle);
     // Check if the handle has already been initialized
+    if (handle->init == true){
 
+        //Return since we don't need to init anymore?
+        return HAL_ERROR;
+    }
+
+    else {
+
+
+        
     // Configure the HAL handle
+    
+    HAL_UART_Init(handle->uart_h);
+    handle->init = true;
+    // Configure the RTOS Resources 
+    handle->sem_rx = xSemaphoreCreateMutex(); //not sure if we wanted binary or mutex
+    handle->sem_tx = xSemaphoreCreateMutex();
 
-    // Configure the RTOS Resources
+    handle->queue_h = xQueueCreate(MAX_USART_QUEUE_SIZE, MAX_USART_BUF_SIZE);
+    
+    }
     
 
 }
 
-void UART_DeInit(UART_Interface * handle){
+void UART_DeInit(DAT_USART_Handle_t * handle){
     assert(handle);
     
     // Check if the handle has already been initialized
+  if (handle->init == true)
+    {
+        //Since we know that the handle has been initialized we can then go and free up all the resources 
 
     // De-Init HAL layer
+    HAL_UART_DeInit(handle->uart_h);
+    // De-allocate RTOS Resources   
+    vSemaphoreDelete(handle->sem_rx);
+    vSemaphoreDelete(handle->sem_tx);
 
-    // De-allocate RTOS Resources
+    vQueueDelete(handle->queue_h);
+    handle->init = false;
+
+
+    }
+    else {
+        //otherwise we can return with error that the handle has not been initialized yet
+        return HAL_ERROR;
+    }
 
 }
-
-
-
 
 /* Rx ISR Callback */
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
     
     BaseType_t xStatus ={0};
-    HAL_GPIO_TogglePin(LD3_GPIO_Port, LD3_Pin);
+    
 
     if(huart == &huart3){
         xStatus = xQueueSendToBackFromISR(DebugQueue,DebugBuf,NULL);
         Request_Debug_Read();
     }
     if(xStatus == pdPASS){
-        HAL_GPIO_TogglePin(LD3_GPIO_Port, LD3_Pin);
+        
     }
 
     return;
