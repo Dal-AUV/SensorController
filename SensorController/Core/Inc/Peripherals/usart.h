@@ -12,10 +12,11 @@
 #include <stdarg.h>
 #include "main.h"
 #include "FreeRTOS.h"
+
 #include <stdbool.h>
 
 #include "queue.h"
-
+#include "semphr.h"
 /* Definitions */
 #define MAX_USART_BUF_SIZE 50
 #define MAX_USART_QUEUE_SIZE 80
@@ -25,6 +26,16 @@ typedef enum UART_STATUS{
     UART_STATUS_WRITE
 
 }UART_STATUS_t;
+
+typedef enum UART_SENSORS{
+	SENSOR1,
+	SENSOR2,
+	SENSOR3
+
+}UART_SENSORS_t;
+
+extern UART_HandleTypeDef huart3;
+
 /* TypeDefs and Structs */
 /**
  * @brief 
@@ -33,11 +44,13 @@ typedef enum UART_STATUS{
 typedef struct UART_Interface{
     
     UART_HandleTypeDef *uart_h;
+
     QueueHandle_t      *queue_h;
     SemaphoreHandle_t  *sem_tx;
     SemaphoreHandle_t  *sem_rx;
     bool                init;
     UART_STATUS_t       status;
+    UART_SENSORS_t 		sensors; //this is a potential implementation to experiment with
 
 }DAT_USART_Handle_t;
 

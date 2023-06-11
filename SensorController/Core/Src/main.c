@@ -67,7 +67,7 @@ ETH_HandleTypeDef heth;
 
 I2C_HandleTypeDef hi2c1;
 
-UART_HandleTypeDef huart3;
+
 
 osThreadId defaultTaskHandle;
 /* USER CODE BEGIN PV */
@@ -120,7 +120,8 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_ETH_Init();
-  MX_USART3_UART_Init();
+  //MX_USART3_UART_Init();
+  
   MX_I2C1_Init();
   /* USER CODE BEGIN 2 */
   EnableDebug();
