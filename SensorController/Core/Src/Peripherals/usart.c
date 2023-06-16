@@ -28,7 +28,7 @@
 UART_HandleTypeDef huart3;
 /* Public Variables */
 QueueHandle_t DebugQueue;
-DAT_USART_Handle_t *uart3;
+DAT_USART_Handle_t uart3;
 
 
 SemaphoreHandle_t DebugMutex;
@@ -39,7 +39,8 @@ uint8_t DebugBuf[MAX_USART_BUF_SIZE];
 
 void UART_Init(DAT_USART_Handle_t * handle){
     assert(handle);
-    handle->uart_h = &huart3;
+    handle->uart_h = huart3;
+    handle->uart_h.gState = HAL_UART_STATE_READY;
     
     // Check if the handle has already been initialized
     if (handle->init){
@@ -48,6 +49,7 @@ void UART_Init(DAT_USART_Handle_t * handle){
         
         return HAL_OK;
     }
+   
 
     else {
 
@@ -68,7 +70,7 @@ void UART_Init(DAT_USART_Handle_t * handle){
   }
     //not updating in the stm debugger
     handle->init = true;
-    handle->status = UART_STATUS_WRITE;
+
     // Configure the RTOS Resources 
     handle->sem_rx = xSemaphoreCreateMutex();
     handle->sem_tx = xSemaphoreCreateMutex();
@@ -91,7 +93,8 @@ void UART_DeInit(DAT_USART_Handle_t * handle){
         //Since we know that the handle has been initialized we can then go and free up all the resources 
 
     // De-Init HAL layer
-    HAL_UART_DeInit(handle->uart_h);
+    HAL_UART_DeInit(&(handle->uart_h)); //not sure if this is valid at all in the slightest but yolo xdd
+    
     // De-allocate RTOS Resources   
     vSemaphoreDelete(handle->sem_rx);
     vSemaphoreDelete(handle->sem_tx);
@@ -119,17 +122,17 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
 
     if(huart == &huart3){
         //This line doesn't work, the program freezes
-        xStatus = xQueueSendToBackFromISR(uart3->queue_h,DebugBuf,NULL); //pointer to pointer issue maybe
+        xStatus = xQueueSendToBackFromISR(uart3.queue_h,DebugBuf,NULL); 
 
-        //this is the before
-        xStatus = xQueueSendToBackFromISR(DebugQueue,DebugBuf,NULL);
+        
+        //xStatus = xQueueSendToBackFromISR(DebugQueue,DebugBuf,NULL);
 
         Request_Debug_Read();
     }
     if(xStatus == pdPASS){
         
     }
-
+    HAL_GPIO_TogglePin(LD3_GPIO_Port, LD3_Pin); 
     return;
 }
 
@@ -163,18 +166,18 @@ void DebugWrite(const char * format, ...){
     vsnprintf(buffer,sizeof(buffer),format, args);
     va_end(args);
     // Take the Debug Lock
-    xSemaphoreTake(DebugMutex, portMAX_DELAY);
+    xSemaphoreTake(uart3.sem_tx, portMAX_DELAY);
 
     //Transmit via Debug USART
-    HAL_UART_Transmit(&huart3,(uint8_t*)buffer,
-        strlen(buffer), HAL_MAX_DELAY);
-
-    // Alternate Transmit via DAT USART
-    // HAL_UART_Transmit(&uart3,(uint8_t*)buffer,
+    //HAL_UART_Transmit(&huart3,(uint8_t*)buffer,
     //    strlen(buffer), HAL_MAX_DELAY);
 
+    // Alternate Transmit via DAT USART
+     HAL_UART_Transmit(&uart3.uart_h,(uint8_t*)buffer,
+        strlen(buffer), HAL_MAX_DELAY);
     // Give the lock 
-    xSemaphoreGive(DebugMutex);
+
+    xSemaphoreGive(uart3.sem_tx);
 
     return;
 }
@@ -188,7 +191,7 @@ void DebugWriteUnprotected(const char * format, ...){
     vsnprintf(buffer,sizeof(buffer),format, args);
     va_end(args);
     // Transmit via Debug Lock
-    HAL_UART_Transmit(&huart3,(uint8_t*)buffer, 
+    HAL_UART_Transmit(&uart3,(uint8_t*)buffer,
         strlen(buffer), HAL_MAX_DELAY);
     
     return;    

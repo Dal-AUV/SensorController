@@ -43,14 +43,14 @@ extern UART_HandleTypeDef huart3;
  */
 typedef struct UART_Interface{
     
-    UART_HandleTypeDef *uart_h;
+    UART_HandleTypeDef uart_h;
 
-    QueueHandle_t      *queue_h;
-    SemaphoreHandle_t  *sem_tx;
-    SemaphoreHandle_t  *sem_rx;
-    bool                init;
-    UART_STATUS_t       status;
-    UART_SENSORS_t 		sensors; //this is a potential implementation to experiment with
+    QueueHandle_t      queue_h; //changed from pointer to non pointer 
+    SemaphoreHandle_t  sem_tx;
+    SemaphoreHandle_t  sem_rx;
+    bool               init;
+    UART_STATUS_t      status;
+    UART_SENSORS_t 	   sensors; //this is a potential implementation to experiment with
 
 }DAT_USART_Handle_t;
 

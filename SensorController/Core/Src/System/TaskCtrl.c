@@ -25,7 +25,7 @@ static void TASKHeartBeat(void){
     uint8_t counter = 0;
 
     while(1){
-        //DebugWrite("HeartBeat: %X\n\r",counter++);
+        DebugWrite("HeartBeat: %X\n\r",counter++);
         HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
 
         if(counter == 1000) counter = 0;
