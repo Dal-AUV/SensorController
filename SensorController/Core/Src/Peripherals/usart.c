@@ -77,8 +77,7 @@ void UART_Init(DAT_USART_Handle_t * handle){
 
     handle->queue_h = xQueueCreate(MAX_USART_QUEUE_SIZE, MAX_USART_BUF_SIZE);
     
-    /* Configuration of the RTOS resources does seem to be successfully occuring. However 
-    Attempting to change the other values of the handle members is not, uncertain of the cause..*/
+ 
     }
     
 
@@ -121,11 +120,8 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
     HAL_GPIO_TogglePin(LD3_GPIO_Port, LD3_Pin); 
 
     if(huart == &huart3){
-        //This line doesn't work, the program freezes
-        xStatus = xQueueSendToBackFromISR(uart3.queue_h,DebugBuf,NULL); 
-
         
-        //xStatus = xQueueSendToBackFromISR(DebugQueue,DebugBuf,NULL);
+        xStatus = xQueueSendToBackFromISR(uart3.queue_h,DebugBuf,NULL); 
 
         Request_Debug_Read();
     }
@@ -146,10 +142,6 @@ void Request_Debug_Read(void){
 
 void EnableDebug(void){
     
-	//DAT_USART_Handle_t uart3;
-    //DebugQueue = xQueueCreate(MAX_USART_QUEUE_SIZE, sizeof(uint8_t));
-
-    //DebugMutex = xSemaphoreCreateMutex();
 	UART_Init(&uart3);
     Request_Debug_Read();
 
@@ -167,10 +159,6 @@ void DebugWrite(const char * format, ...){
     va_end(args);
     // Take the Debug Lock
     xSemaphoreTake(uart3.sem_tx, portMAX_DELAY);
-
-    //Transmit via Debug USART
-    //HAL_UART_Transmit(&huart3,(uint8_t*)buffer,
-    //    strlen(buffer), HAL_MAX_DELAY);
 
     // Alternate Transmit via DAT USART
      HAL_UART_Transmit(&uart3.uart_h,(uint8_t*)buffer,
