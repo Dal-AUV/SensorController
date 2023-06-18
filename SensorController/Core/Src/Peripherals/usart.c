@@ -25,62 +25,59 @@
 
 /* Definitions */
 #define USART_TX_BUF_SIZE 50
-UART_HandleTypeDef huart3;
 /* Public Variables */
+UART_HandleTypeDef huart3;
 QueueHandle_t DebugQueue;
 DAT_USART_Handle_t uart3;
-
-
 SemaphoreHandle_t DebugMutex;
-
 uint8_t DebugBuf[MAX_USART_BUF_SIZE];
+
 /* Private Prototypes */
 
+/* Public Functions */
 
-void UART_Init(DAT_USART_Handle_t * handle){
-    assert(handle);
-    handle->uart_h = huart3;
-    handle->uart_h.gState = HAL_UART_STATE_READY;
+HAL_StatusTypeDef Sys_UART_Init(void){
+
+	uart3.uart_h = huart3;
+	uart3.queue_h = NULL;
+	uart3.sem_rx = NULL;
+	uart3.sem_tx = NULL;
+	uart3.init = false;
+	uart3.sensors = SENSOR1;
+
+	return UART_Init(&uart3);
+}
+
+HAL_StatusTypeDef UART_Init(DAT_USART_Handle_t * handle){
+
+	assert(handle);
+    //handle->uart_h.gState = HAL_UART_STATE_READY;
     
     // Check if the handle has already been initialized
-    if (handle->init){
-
-        //Already Init so we can just HAL_OK
-        
-        return HAL_OK;
-    }
-   
-
-    else {
+    if (handle->init) return HAL_OK; //Already Init so we can just HAL_OK
 
     // Configure the HAL handle
-    huart3.Instance = USART3;
-    huart3.Init.BaudRate = 115200;
-    huart3.Init.WordLength = UART_WORDLENGTH_8B;
-    huart3.Init.StopBits = UART_STOPBITS_1;
-    huart3.Init.Parity = UART_PARITY_NONE;
-    huart3.Init.Mode = UART_MODE_TX_RX;
-    huart3.Init.HwFlowCtl = UART_HWCONTROL_NONE;
-    huart3.Init.OverSampling = UART_OVERSAMPLING_16;
-    huart3.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
-    huart3.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
-  if (HAL_UART_Init(&huart3) != HAL_OK)
-  {
-    Error_Handler();
-  }
+    handle->uart_h.Instance = USART3;
+    handle->uart_h.Init.BaudRate = 115200;
+    handle->uart_h.Init.WordLength = UART_WORDLENGTH_8B;
+    handle->uart_h.Init.StopBits = UART_STOPBITS_1;
+    handle->uart_h.Init.Parity = UART_PARITY_NONE;
+    handle->uart_h.Init.Mode = UART_MODE_TX_RX;
+    handle->uart_h.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+    handle->uart_h.Init.OverSampling = UART_OVERSAMPLING_16;
+    handle->uart_h.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
+    handle->uart_h.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
+
     //not updating in the stm debugger
     handle->init = true;
 
     // Configure the RTOS Resources 
-    handle->sem_rx = xSemaphoreCreateMutex();
-    handle->sem_tx = xSemaphoreCreateMutex();
-
-    handle->queue_h = xQueueCreate(MAX_USART_QUEUE_SIZE, MAX_USART_BUF_SIZE);
+    if(NULL == (handle->sem_rx = xSemaphoreCreateMutex())) return HAL_ERROR;
+    if(NULL == (handle->sem_tx = xSemaphoreCreateMutex())) return HAL_ERROR;
+    if(NULL == (handle->queue_h = xQueueCreate(MAX_USART_QUEUE_SIZE,
+    		MAX_USART_BUF_SIZE))) return HAL_ERROR;
     
- 
-    }
-    
-
+    return HAL_UART_Init(&handle->uart_h);
 }
 
 void UART_DeInit(DAT_USART_Handle_t * handle){
@@ -101,13 +98,11 @@ void UART_DeInit(DAT_USART_Handle_t * handle){
     vQueueDelete(handle->queue_h);
     handle->init = false;
 
-
     }
     else {
         //Already DeInit so we can just HAL_OK
         return HAL_OK;
     }
-
 }
 
 /* Rx ISR Callback */
@@ -142,7 +137,7 @@ void Request_Debug_Read(void){
 
 void EnableDebug(void){
     
-	UART_Init(&uart3);
+	//UART_Init(&uart3);
     Request_Debug_Read();
 
     return;
@@ -159,7 +154,6 @@ void DebugWrite(const char * format, ...){
     va_end(args);
     // Take the Debug Lock
     xSemaphoreTake(uart3.sem_tx, portMAX_DELAY);
-
     // Alternate Transmit via DAT USART
      HAL_UART_Transmit(&uart3.uart_h,(uint8_t*)buffer,
         strlen(buffer), HAL_MAX_DELAY);
@@ -190,6 +184,8 @@ void TASKDebugParser(void){
     uint8_t in;
     uint8_t pos = 0;
     uint8_t buffer[50];
+
+    EnableDebug();
     while(1){
         xStatus = xQueueReceive(DebugQueue,&in,portMAX_DELAY);
         if(xStatus == pdFALSE) continue;
@@ -202,5 +198,3 @@ void TASKDebugParser(void){
     }
     return;
 }
-
-/* Private Implemtations */

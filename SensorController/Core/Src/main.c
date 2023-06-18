@@ -124,7 +124,7 @@ int main(void)
   
   MX_I2C1_Init();
   /* USER CODE BEGIN 2 */
-  EnableDebug();
+  Sys_UART_Init();
   SysTask_Init();
   vTaskStartScheduler();
   /* USER CODE END 2 */

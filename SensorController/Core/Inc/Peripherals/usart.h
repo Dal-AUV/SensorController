@@ -49,19 +49,20 @@ typedef struct UART_Interface{
     SemaphoreHandle_t  sem_tx;
     SemaphoreHandle_t  sem_rx;
     bool               init;
-    UART_STATUS_t      status;
     UART_SENSORS_t 	   sensors; //this is a potential implementation to experiment with
 
 }DAT_USART_Handle_t;
 
 /* Public Functions */
+HAL_StatusTypeDef Sys_UART_Init(void);
+
 /**
  * @brief Function call to initialize a uart interface
  * The user will need to provide the the uart handle interface that is allocated
  * by the user before calling
  * @param handle 
  */
-void UART_Init(DAT_USART_Handle_t * handle);
+HAL_StatusTypeDef UART_Init(DAT_USART_Handle_t * handle);
 /**
  * @brief Function to deinitialize a uart interface
  * 
