@@ -34,16 +34,23 @@ uint8_t DebugBuf[MAX_USART_BUF_SIZE];
 
 /* Private Prototypes */
 
+
+
 /* Public Functions */
 
 HAL_StatusTypeDef Sys_UART_Init(void){
 
-	uart3.uart_h = huart3;
-	uart3.queue_h = NULL;
-	uart3.sem_rx = NULL;
-	uart3.sem_tx = NULL;
-	uart3.init = false;
-	uart3.sensors = SENSOR1;
+//	uart3.uart_h = huart3;
+//	uart3.queue_h = NULL;
+//	uart3.sem_rx = NULL;
+//	uart3.sem_tx = NULL;
+//	uart3.init = false;
+//	uart3.sensors = SENSOR1;
+
+	for (int i = 0 ; i < SENSOR_TOTAL; ++i){
+		UART_Init(&uarts[i]);
+	}
+
 
 	return UART_Init(&uart3);
 }

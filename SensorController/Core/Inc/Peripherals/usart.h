@@ -20,6 +20,7 @@
 /* Definitions */
 #define MAX_USART_BUF_SIZE 50
 #define MAX_USART_QUEUE_SIZE 80
+
 typedef enum UART_STATUS{
     UART_STATUS_IDLE,
     UART_STATUS_READ,
@@ -30,9 +31,13 @@ typedef enum UART_STATUS{
 typedef enum UART_SENSORS{
 	SENSOR1,
 	SENSOR2,
-	SENSOR3
+	SENSOR3,
+
+	SENSOR_TOTAL
 
 }UART_SENSORS_t;
+
+
 
 extern UART_HandleTypeDef huart3;
 
@@ -52,6 +57,13 @@ typedef struct UART_Interface{
     UART_SENSORS_t 	   sensors; //this is a potential implementation to experiment with
 
 }DAT_USART_Handle_t;
+
+DAT_USART_Handle_t uarts[SENSOR_TOTAL] = {
+		{huart3, NULL, NULL, NULL, false, SENSOR1},
+		{huart2, NULL, NULL, NULL, false, SENSOR2}
+};
+
+
 
 /* Public Functions */
 HAL_StatusTypeDef Sys_UART_Init(void);
