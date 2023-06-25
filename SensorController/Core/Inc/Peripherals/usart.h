@@ -33,13 +33,9 @@ typedef enum UART_STATUS{
 
 typedef enum UART_SENSORS{
 	SENSOR1,
-	SENSOR2,
-	SENSOR3,
 	SENSOR_TOTAL
 
 }UART_SENSORS_t;
-
-
 
 
 /* TypeDefs and Structs */
@@ -50,13 +46,19 @@ typedef enum UART_SENSORS{
 
 typedef struct UART_Interface{
     
-    UART_HandleTypeDef *uart_h;
+    UART_HandleTypeDef 	*uart_h;
+    USART_TypeDef		*MEM_BASE;
+    QueueHandle_t      	queue_h; //changed from pointer to non pointer
+    uint8_t*			buf;
+    SemaphoreHandle_t  	sem_tx;
+    SemaphoreHandle_t  	sem_rx;
+    bool               	initFlag;
+    UART_SENSORS_t 	   	sensors; //this is a potential implementation to experiment with
 
-    QueueHandle_t      queue_h; //changed from pointer to non pointer 
-    SemaphoreHandle_t  sem_tx;
-    SemaphoreHandle_t  sem_rx;
-    bool               init;
-    UART_SENSORS_t 	   sensors; //this is a potential implementation to experiment with
+    // This is the general format for the function pointers
+    HAL_StatusTypeDef (*init)(struct UART_Interface*);
+    void (*enable)(struct UART_Interface*);
+
 
 }DAT_USART_Handle_t;
 
