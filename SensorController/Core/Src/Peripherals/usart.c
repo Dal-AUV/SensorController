@@ -27,55 +27,61 @@
 #define USART_TX_BUF_SIZE 50
 /* Public Variables */
 UART_HandleTypeDef huart3;
+UART_HandleTypeDef huart2;
 QueueHandle_t DebugQueue;
 DAT_USART_Handle_t uart3;
 SemaphoreHandle_t DebugMutex;
 uint8_t DebugBuf[MAX_USART_BUF_SIZE];
 
+
 /* Private Prototypes */
 
+DAT_USART_Handle_t uarts[SENSOR_TOTAL] = {
+	  //{UART_HANLDE, QUEUE, SEMRX, SEMTX, INIT, SENSOR_NAME}
+		{&huart3, NULL, NULL, NULL, false, SENSOR1},
+		{&huart2, NULL, NULL, NULL, false, SENSOR2},
+
+};
 
 
 /* Public Functions */
 
 HAL_StatusTypeDef Sys_UART_Init(void){
 
-//	uart3.uart_h = huart3;
-//	uart3.queue_h = NULL;
-//	uart3.sem_rx = NULL;
-//	uart3.sem_tx = NULL;
-//	uart3.init = false;
-//	uart3.sensors = SENSOR1;
 
 	for (int i = 0 ; i < SENSOR_TOTAL; ++i){
+        
+        if (uarts[i].uart_h == 0x0) return HAL_ERROR;
+        
 		UART_Init(&uarts[i]);
+
 	}
 
-
+	//return HAL_OK;
 	return UART_Init(&uart3);
 }
 
 HAL_StatusTypeDef UART_Init(DAT_USART_Handle_t * handle){
 
 	assert(handle);
-    //handle->uart_h.gState = HAL_UART_STATE_READY;
     
     // Check if the handle has already been initialized
-    if (handle->init) return HAL_OK; //Already Init so we can just HAL_OK
+
+    if (handle->init) return HAL_OK;
 
     // Configure the HAL handle
-    handle->uart_h.Instance = USART3;
-    handle->uart_h.Init.BaudRate = 115200;
-    handle->uart_h.Init.WordLength = UART_WORDLENGTH_8B;
-    handle->uart_h.Init.StopBits = UART_STOPBITS_1;
-    handle->uart_h.Init.Parity = UART_PARITY_NONE;
-    handle->uart_h.Init.Mode = UART_MODE_TX_RX;
-    handle->uart_h.Init.HwFlowCtl = UART_HWCONTROL_NONE;
-    handle->uart_h.Init.OverSampling = UART_OVERSAMPLING_16;
-    handle->uart_h.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
-    handle->uart_h.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
+    handle->uart_h->Instance = USART3;
+    handle->uart_h->Init.BaudRate = 115200;
+    handle->uart_h->Init.WordLength = UART_WORDLENGTH_8B;
+    handle->uart_h->Init.StopBits = UART_STOPBITS_1;
+    handle->uart_h->Init.Parity = UART_PARITY_NONE;
+    handle->uart_h->Init.Mode = UART_MODE_TX_RX;
+    handle->uart_h->Init.HwFlowCtl = UART_HWCONTROL_NONE;
+    handle->uart_h->Init.OverSampling = UART_OVERSAMPLING_16;
+    handle->uart_h->Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
+    handle->uart_h->AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
 
-    //not updating in the stm debugger
+
     handle->init = true;
 
     // Configure the RTOS Resources 
@@ -93,10 +99,8 @@ void UART_DeInit(DAT_USART_Handle_t * handle){
     // Check if the handle has already been initialized
   if (handle->init == true)
     {
-        //Since we know that the handle has been initialized we can then go and free up all the resources 
-
     // De-Init HAL layer
-    HAL_UART_DeInit(&(handle->uart_h)); //not sure if this is valid at all in the slightest but yolo xdd
+    HAL_UART_DeInit(&(handle->uart_h));
     
     // De-allocate RTOS Resources   
     vSemaphoreDelete(handle->sem_rx);
@@ -134,7 +138,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
     return;
 }
 
-/* Exported Implemtations */
+/* Exported Implementations */
 void Request_Debug_Read(void){
     
     HAL_UART_Receive_IT(&huart3,DebugBuf,1);
