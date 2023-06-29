@@ -1,5 +1,10 @@
 {
     "files.associations": {
-        "main.h": "c"
+        "main.h": "c",
+        "i2c.h": "c",
+        "freertos.h": "c",
+        "semphr.h": "c",
+        "stdbool.h": "c",
+        "queue.h": "c"
     }
 }
