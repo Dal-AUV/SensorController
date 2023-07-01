@@ -41,6 +41,8 @@ typedef struct I2C_Interface{
     bool                initFlag;
     I2C_SENSORS_t       sensors;
     uint32_t            OWN_ADDRESS;
+    uint32_t            DEV_ADDRESS;
+
 
 
 }DAT_I2C_HANDLE_t;

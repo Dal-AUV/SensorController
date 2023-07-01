@@ -21,7 +21,25 @@
 #include "semphr.h"
 /* Application Headers */
 #include "Peripherals/i2c.h"
+/**
+ * TODO Need to implement the master calback function
+ * 
+ * TODO Need to discuss the best method for determining the i2c parameters since they could change a good amount from sensor to sensor
+ *  
+ *  
+ * 
+*/
 
+/**
+ * * From The I2C Firmware Driver API Description (p 482/2312)
+ * TODO Configure the Communication Clk timing Own Address.. (Hi2c1 Struct) 
+ *  *Done
+ * TODO Check if target Device is ready for communication 
+ *  *Check implementation
+ * TODO Initialize I2c Registers using i2c init
+ *  *Done using return of init function
+ * 
+*/
 
 /* Definitions */
 I2C_HandleTypeDef hi2c1;
@@ -47,12 +65,17 @@ HAL_StatusTypeDef I2C_Init(struct I2C_Interface * handle) {
     hi2c1.Init.OwnAddress2Masks = I2C_OA2_NOMASK;
     hi2c1.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
     hi2c1.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
+
+    HAL_I2C_IsDeviceReady(handle, 1<<handle->DEV_ADDRESS, 3, HAL_MAX_DELAY); //TODO Add break case depending on this return?
     
     /* configure the RTOS resources*/
     if(NULL == (handle->sem_rx = xSemaphoreCreateMutex())) return HAL_ERROR;
     if(NULL == (handle->sem_tx = xSemaphoreCreateMutex())) return HAL_ERROR;
     if(NULL == (handle->queue_h = xQueueCreate(MAX_USART_QUEUE_SIZE,
     		MAX_USART_BUF_SIZE))) return HAL_ERROR;
+
+
+    
 
     return HAL_I2C_Init(handle->i2c_h);
 }
@@ -70,3 +93,17 @@ void I2C_DeInit(DAT_I2C_HANDLE_t *handle) {
     }
     else return HAL_OK;
 }
+
+void HAL_I2C_MasterTxCpltCallback(I2C_HandleTypeDef *hi2c) {
+
+    //todo fill out user code for what we want to have happen when master transmit 
+
+
+}
+void HAL_I2C_MasterRxCpltCallback(I2C_HandleTypeDef *hi2c) {
+
+    //todo fill out user code for what we want to have happen when master receives 
+
+
+}
+
