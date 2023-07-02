@@ -1,8 +1,8 @@
 /**
  * @file usart.c
- * @author Matthew Cockburn
+ * @author Matthew Cockburn & Wyatt Davion
  * @brief Source file for the USART hardware interfaces, contains ISR 
- * implemetation, Recieve and Transmit functions 
+ * implemetation, Recieve and Transmit functions
  * @version 0.1
  * @date 2023-02-12
  * 
@@ -27,21 +27,57 @@
 /* Definitions */
 #define USART_TX_BUF_SIZE 50
 /* Public Variables */
+
+
+// HAL Hardware Handles
 UART_HandleTypeDef huart3;
 UART_HandleTypeDef huart2;
+// UART Queues
 QueueHandle_t DebugQueue;
+// UART Interface Locks
 SemaphoreHandle_t DebugMutex;
-uint8_t DebugBuf[MAX_USART_BUF_SIZE];
+// Receive Buffers
+uint8_t ROSBuf[MAX_USART_BUF_SIZE];
 
-void UART_Enable_IT(struct UART_Interface * handle);
-
-/* Private Prototypes */
-
-DAT_USART_Handle_t uarts[SENSOR_TOTAL] = {
-	  //{UART_HANLDE, QUEUE, SEMRX, SEMTX, INIT, SENSOR_NAME}
-		{&huart3, USART3, NULL, DebugBuf, NULL, NULL, false, SENSOR1, UART_Init,UART_Enable_IT}
-
+// Global Definitions of DAT UART API Handles
+/**
+ * @brief 
+ * 
+ */
+DAT_USART_Handle_t uarts[SENSOR_TOTAL] ={
+    {
+        .uart_h = &huart3,
+        .h_addr = USART3,
+        .queue_h = NULL,
+        .buf = ROSBuf,
+        .sem_tx = NULL,
+        .init = UART_Init,
+        .deinit = UART_DeInit,
+        .enable = UART_Enable,
+        .disable = UART_Disable,
+        .write = UART_Write,
+        .write_unpro = UART_Write_Unprotected
+    }
 };
+
+/* Rx ISR Callback */
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
+    
+    BaseType_t xStatus ={0};
+    
+    //sanity check pin toggle to see if Callback is running will flash red light
+    HAL_GPIO_TogglePin(LD3_GPIO_Port, LD3_Pin); 
+
+    if(huart == uarts[ROS].uart_h){
+        
+        xStatus = xQueueSendToBackFromISR(uarts[ROS].queue_h,uarts[ROS].buf,NULL);
+        uarts[ROS].enable(&uarts[ROS]);
+    }
+    if(xStatus == pdPASS){
+        HAL_GPIO_TogglePin(LD3_GPIO_Port, LD3_Pin); 
+    }
+    return;
+}
 
 /* Public Functions */
 
@@ -64,7 +100,7 @@ HAL_StatusTypeDef UART_Init(struct UART_Interface * handle){
     if (handle->initFlag) return HAL_OK;
 
     // Configure the HAL handle
-    handle->uart_h->Instance = handle->MEM_BASE;
+    handle->uart_h->Instance = handle->h_addr;
     handle->uart_h->Init.BaudRate = 115200;
     handle->uart_h->Init.WordLength = UART_WORDLENGTH_8B;
     handle->uart_h->Init.StopBits = UART_STOPBITS_1;
@@ -86,14 +122,14 @@ HAL_StatusTypeDef UART_Init(struct UART_Interface * handle){
     return HAL_UART_Init(handle->uart_h);
 }
 
-void UART_DeInit(DAT_USART_Handle_t * handle){
+HAL_StatusTypeDef UART_DeInit(struct UART_Interface * handle){
     assert(handle);
     
     // Check if the handle has already been initialized
-  if (handle->initFlag == true)
-    {
+    if (!handle->initFlag) return HAL_OK;
     // De-Init HAL layer
-    HAL_UART_DeInit(handle->uart_h);
+    //TODO we should handle this return case
+    HAL_StatusTypeDef status = HAL_UART_DeInit(handle->uart_h);
     
     // De-allocate RTOS Resources   
     vSemaphoreDelete(handle->sem_rx);
@@ -102,106 +138,44 @@ void UART_DeInit(DAT_USART_Handle_t * handle){
     vQueueDelete(handle->queue_h);
     handle->initFlag = false;
 
-    }
-    else {
-        //Already DeInit so we can just HAL_OK
-        return HAL_OK;
-    }
+    return status;
 }
 
-/* Rx ISR Callback */
+HAL_StatusTypeDef UART_Enable(struct UART_Interface * handle){
+    assert(handle);
 
-void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
-    
-    BaseType_t xStatus ={0};
-    
-    //sanity check pin toggle to see if Callback is running will flash red light
-    HAL_GPIO_TogglePin(LD3_GPIO_Port, LD3_Pin); 
-
-    if(huart == uarts[SENSOR1].uart_h){
-        
-        xStatus = xQueueSendToBackFromISR(uarts[SENSOR1].queue_h,uarts[SENSOR1].buf,NULL);
-        uarts[SENSOR1].enable(&uarts[SENSOR1]);
-    }
-    if(xStatus == pdPASS){
-        
-    }
-    HAL_GPIO_TogglePin(LD3_GPIO_Port, LD3_Pin); 
-    return;
+    return HAL_UART_Receive_IT(handle->uart_h,handle->buf,UART_RX_ISR_TRIGGER_SZ);
 }
 
-/* Exported Implementations */
-void UART_Enable_IT(struct UART_Interface * handle){
-	HAL_UART_Receive_IT(handle->uart_h,handle->buf,1);
+HAL_StatusTypeDef UART_Disable(struct UART_Interface * handle){
+    assert(handle);
+
+    return HAL_UART_AbortReceive_IT(handle->uart_h);
 }
 
-void Request_Debug_Read(void){
+HAL_StatusTypeDef UART_Write(struct UART_Interface * handle,
+    const uint8_t* buf,const uint16_t size){
     
-    HAL_UART_Receive_IT(&huart3,DebugBuf,1);
-    return;
+    assert(handle);
+    assert(buf);
 
+    if(size == 0) return HAL_OK;
+    // Take the Tx lock
+    xSemaphoreTake(handle->sem_tx,portMAX_DELAY);
+    HAL_StatusTypeDef status = HAL_UART_Transmit(handle->uart_h,
+        buf,size,portMAX_DELAY);
+    // Release the Tx Lock
+    xSemaphoreGive(handle->sem_tx);
+    return status;
 }
 
-void EnableDebug(void){
+HAL_StatusTypeDef UART_Write_Unprotected(struct UART_Interface * h,
+    const uint8_t* buf,const uint16_t size){
     
-	//UART_Init(&uart3);
-    Request_Debug_Read();
+    assert(h);
+    assert(buf);
 
-    return;
+    if(size == 0) return HAL_OK;
 
-}
-
-void DebugWrite(const char * format, ...){
-    
-    char buffer[50];
-    va_list args;
-    // Get Format and parse it
-    va_start(args, format);
-    vsnprintf(buffer,sizeof(buffer),format, args);
-    va_end(args);
-    // Take the Debug Lock
-    xSemaphoreTake(uarts[SENSOR1].sem_tx, portMAX_DELAY);
-    // Alternate Transmit via DAT USART
-     HAL_UART_Transmit(uarts[SENSOR1].uart_h,(uint8_t*)buffer,
-        strlen(buffer), HAL_MAX_DELAY);
-    // Give the lock 
-
-    xSemaphoreGive(uarts[SENSOR1].sem_tx);
-
-    return;
-}
-
-void DebugWriteUnprotected(const char * format, ...){
-    
-    char buffer[100];
-    va_list args;
-    // Get Format and parse it
-    va_start(args, format);
-    vsnprintf(buffer,sizeof(buffer),format, args);
-    va_end(args);
-    // Transmit via Debug Lock
-    HAL_UART_Transmit(&uarts[SENSOR1].uart_h,(uint8_t*)buffer,
-        strlen(buffer), HAL_MAX_DELAY);
-    
-    return;    
-}
-
-void TASKDebugParser(void){
-    BaseType_t xStatus = {0};
-    uint8_t in;
-    uint8_t pos = 0;
-    uint8_t buffer[50];
-
-    EnableDebug();
-    while(1){
-        xStatus = xQueueReceive(DebugQueue,&in,portMAX_DELAY);
-        if(xStatus == pdFALSE) continue;
-        buffer[pos++] = in;
-        if((in == '\n') | (in == '\r')){
-            pos = 0;
-            DebugWrite("%s\n",buffer);
-            memset(&buffer,0,50);
-        }else continue;
-    }
-    return;
+    return HAL_UART_Transmit(h->uart_h,buf,size,portMAX_DELAY);
 }
