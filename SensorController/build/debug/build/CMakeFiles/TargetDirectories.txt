@@ -1,3 +1,0 @@
-C:/Users/mrcoc/repos/DAT/DAT-Firmware/SensorController/build/debug/build/CMakeFiles/SensorController.dir
-C:/Users/mrcoc/repos/DAT/DAT-Firmware/SensorController/build/debug/build/CMakeFiles/edit_cache.dir
-C:/Users/mrcoc/repos/DAT/DAT-Firmware/SensorController/build/debug/build/CMakeFiles/rebuild_cache.dir
