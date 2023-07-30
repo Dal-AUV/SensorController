@@ -2,7 +2,7 @@
  * @file usart.c
  * @author Matthew Cockburn & Wyatt Davion
  * @brief Source file for the USART hardware interfaces, contains ISR 
- * implemetation, Recieve and Transmit functions
+ * implementation, Receive and Transmit functions
  * @version 0.1
  * @date 2023-02-12
  * 
@@ -28,154 +28,151 @@
 #define USART_TX_BUF_SIZE 50
 /* Public Variables */
 
-
 // HAL Hardware Handles
 UART_HandleTypeDef huart3;
 UART_HandleTypeDef huart2;
+// HAL UART DMA Handles
+DMA_HandleTypeDef hdma_usart3_rx;
+DMA_HandleTypeDef hdma_usart3_tx;
+
 // UART Queues
-QueueHandle_t DebugQueue;
+QueueHandle_t ROSQueue;
 // UART Interface Locks
-SemaphoreHandle_t DebugMutex;
+SemaphoreHandle_t ROSMutex;
 // Receive Buffers
 uint8_t ROSBuf[MAX_USART_BUF_SIZE];
 
-// Global Definitions of DAT UART API Handles
-/**
- * @brief 
- * 
- */
-DAT_USART_Handle_t uarts[SENSOR_TOTAL] ={
-    {
-        .uart_h = &huart3,
-        .h_addr = USART3,
-        .queue_h = NULL,
-        .buf = ROSBuf,
-        .sem_tx = NULL,
-        .init = UART_Init,
-        .deinit = UART_DeInit,
-        .enable = UART_Enable,
-        .disable = UART_Disable,
-        .write = UART_Write,
-        .write_unpro = UART_Write_Unprotected
-    }
-};
+/* Private Prototypes*/
+void MX_USART3_UART_Init(void);
+void MX_USART2_UART_Init(void);
+HAL_StatusTypeDef UART_DMA_Write(UART_HandleTypeDef *huart, uint8_t * buf, uint16_t size,
+		uint32_t timeout);
+/* Exported Functions */
 
-/* Rx ISR Callback */
+void UART_Init(void)
+{
+	MX_USART2_UART_Init();
+	MX_USART3_UART_Init();
+}
+
+HAL_StatusTypeDef ROS_Write(uint8_t * buffer, uint16_t size, uint32_t timeout)
+{
+	return UART_DMA_Write(&huart3, buffer,size,timeout);
+}
+
+/*  USART CALLBACKS */
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
-    
-    BaseType_t xStatus ={0};
-    
-    //sanity check pin toggle to see if Callback is running will flash red light
-    HAL_GPIO_TogglePin(LD3_GPIO_Port, LD3_Pin); 
 
-    if(huart == uarts[ROS].uart_h){
-        
-        xStatus = xQueueSendToBackFromISR(uarts[ROS].queue_h,uarts[ROS].buf,NULL);
-        uarts[ROS].enable(&uarts[ROS]);
+    BaseType_t xStatus ={0};
+
+    //sanity check pin toggle to see if Callback is running will flash red light
+    HAL_GPIO_TogglePin(LD3_GPIO_Port, LD3_Pin);
+
+    if(huart == &huart3){
+
+        xStatus = xQueueSendToBackFromISR(ROSQueue,ROSBuf,NULL);
+        HAL_UART_Receive_IT(&huart3, ROSBuf, UART_RX_ISR_TRIGGER_SZ);
     }
     if(xStatus == pdPASS){
-        HAL_GPIO_TogglePin(LD3_GPIO_Port, LD3_Pin); 
+        HAL_GPIO_TogglePin(LD3_GPIO_Port, LD3_Pin);
     }
     return;
 }
 
-/* Public Functions */
+void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart){
 
-HAL_StatusTypeDef Sys_UART_Init(void){
-
-	for (int i = 0 ; i < SENSOR_TOTAL; ++i){
-        if (uarts[i].uart_h == NULL) return HAL_ERROR;
-		uarts[i].init(&uarts[i]);
-		uarts[i].enable(&uarts[i]);
+	if(huart == &huart3){
+		xSemaphoreGiveFromISR(ROSMutex,NULL);
 	}
-	return HAL_OK;
+
+	return;
 }
 
-HAL_StatusTypeDef UART_Init(struct UART_Interface * handle){
+/**
+  * @brief USART2 Initialization Function
+  * @param None
+  * @retval None
+  */
+void MX_USART2_UART_Init(void)
+{
 
-	assert(handle);
-    
-    // Check if the handle has already been initialized
+  /* USER CODE BEGIN USART2_Init 0 */
 
-    if (handle->initFlag) return HAL_OK;
+  /* USER CODE END USART2_Init 0 */
 
-    // Configure the HAL handle
-    handle->uart_h->Instance = handle->h_addr;
-    handle->uart_h->Init.BaudRate = 115200;
-    handle->uart_h->Init.WordLength = UART_WORDLENGTH_8B;
-    handle->uart_h->Init.StopBits = UART_STOPBITS_1;
-    handle->uart_h->Init.Parity = UART_PARITY_NONE;
-    handle->uart_h->Init.Mode = UART_MODE_TX_RX;
-    handle->uart_h->Init.HwFlowCtl = UART_HWCONTROL_NONE;
-    handle->uart_h->Init.OverSampling = UART_OVERSAMPLING_16;
-    handle->uart_h->Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
-    handle->uart_h->AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
+  /* USER CODE BEGIN USART2_Init 1 */
 
-    handle->initFlag = true;
+  /* USER CODE END USART2_Init 1 */
+  huart2.Instance = USART2;
+  huart2.Init.BaudRate = 115200;
+  huart2.Init.WordLength = UART_WORDLENGTH_8B;
+  huart2.Init.StopBits = UART_STOPBITS_1;
+  huart2.Init.Parity = UART_PARITY_NONE;
+  huart2.Init.Mode = UART_MODE_TX_RX;
+  huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart2.Init.OverSampling = UART_OVERSAMPLING_16;
+  huart2.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
+  huart2.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
+  if (HAL_UART_Init(&huart2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN USART2_Init 2 */
 
-    // Configure the RTOS Resources 
-    if(NULL == (handle->sem_rx = xSemaphoreCreateMutex())) return HAL_ERROR;
-    if(NULL == (handle->sem_tx = xSemaphoreCreateMutex())) return HAL_ERROR;
-    if(NULL == (handle->queue_h = xQueueCreate(MAX_USART_QUEUE_SIZE,
-    		MAX_USART_BUF_SIZE))) return HAL_ERROR;
+  /* USER CODE END USART2_Init 2 */
 
-    return HAL_UART_Init(handle->uart_h);
 }
 
-HAL_StatusTypeDef UART_DeInit(struct UART_Interface * handle){
-    assert(handle);
-    
-    // Check if the handle has already been initialized
-    if (!handle->initFlag) return HAL_OK;
-    // De-Init HAL layer
-    //TODO we should handle this return case
-    HAL_StatusTypeDef status = HAL_UART_DeInit(handle->uart_h);
-    
-    // De-allocate RTOS Resources   
-    vSemaphoreDelete(handle->sem_rx);
-    vSemaphoreDelete(handle->sem_tx);
+/**
+  * @brief USART3 Initialization Function
+  * @param None
+  * @retval None
+  */
+void MX_USART3_UART_Init(void)
+{
 
-    vQueueDelete(handle->queue_h);
-    handle->initFlag = false;
+  /* USER CODE BEGIN USART3_Init 0 */
 
-    return status;
+  /* USER CODE END USART3_Init 0 */
+
+  /* USER CODE BEGIN USART3_Init 1 */
+
+  /* USER CODE END USART3_Init 1 */
+  huart3.Instance = USART3;
+  huart3.Init.BaudRate = 115200;
+  huart3.Init.WordLength = UART_WORDLENGTH_8B;
+  huart3.Init.StopBits = UART_STOPBITS_1;
+  huart3.Init.Parity = UART_PARITY_NONE;
+  huart3.Init.Mode = UART_MODE_TX_RX;
+  huart3.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart3.Init.OverSampling = UART_OVERSAMPLING_16;
+  huart3.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
+  huart3.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
+  if (HAL_UART_Init(&huart3) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN USART3_Init 2 */
+  ROSQueue = xQueueCreate(MAX_USART_QUEUE_SIZE, sizeof(uint8_t));
+  ROSMutex = xSemaphoreCreateBinary();
+  xSemaphoreGive(ROSMutex);
+  HAL_UART_Receive_IT(&huart3, ROSBuf, UART_RX_ISR_TRIGGER_SZ);
+  /* USER CODE END USART3_Init 2 */
+
 }
 
-HAL_StatusTypeDef UART_Enable(struct UART_Interface * handle){
-    assert(handle);
+HAL_StatusTypeDef UART_DMA_Write(UART_HandleTypeDef *huart, uint8_t * buf, uint16_t size,
+		uint32_t timeout)
+{
 
-    return HAL_UART_Receive_IT(handle->uart_h,handle->buf,UART_RX_ISR_TRIGGER_SZ);
-}
+	assert(huart);
+	assert(buf);
 
-HAL_StatusTypeDef UART_Disable(struct UART_Interface * handle){
-    assert(handle);
+	if(size == 0) return HAL_OK;
 
-    return HAL_UART_AbortReceive_IT(handle->uart_h);
-}
+	if(!xSemaphoreTake(ROSMutex, pdMS_TO_TICKS(timeout))){
+		return HAL_TIMEOUT;
+	}
 
-HAL_StatusTypeDef UART_Write(struct UART_Interface * handle,
-    const uint8_t* buf,const uint16_t size){
-    
-    assert(handle);
-    assert(buf);
-
-    if(size == 0) return HAL_OK;
-    // Take the Tx lock
-    xSemaphoreTake(handle->sem_tx,portMAX_DELAY);
-    HAL_StatusTypeDef status = HAL_UART_Transmit(handle->uart_h,
-        buf,size,portMAX_DELAY);
-    // Release the Tx Lock
-    xSemaphoreGive(handle->sem_tx);
-    return status;
-}
-
-HAL_StatusTypeDef UART_Write_Unprotected(struct UART_Interface * h,
-    const uint8_t* buf,const uint16_t size){
-    
-    assert(h);
-    assert(buf);
-
-    if(size == 0) return HAL_OK;
-
-    return HAL_UART_Transmit(h->uart_h,buf,size,portMAX_DELAY);
+	return HAL_UART_Transmit_DMA(huart, buf, size);
 }
