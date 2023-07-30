@@ -53,4 +53,12 @@ dkms.conf
 
 # STM32 
 *language.settings.xml
+*Debug/
 
+# VS Code
+*.vs/
+*.vscode/
+*CMakeLists.txt
+*CMakePresets.json
+*vcpkg-configuration.json
+*cmake/
