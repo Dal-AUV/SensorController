@@ -9,56 +9,44 @@
  * 
  */
 /* Headers */
-#include <stdarg.h>
 #include "main.h"
 #include "FreeRTOS.h"
 
-#include "queue.h"
+#include <stdbool.h>
 
+#include "queue.h"
+#include "semphr.h"
 /* Definitions */
 #define MAX_USART_BUF_SIZE 50
 #define MAX_USART_QUEUE_SIZE 80
+#define UART_RX_ISR_TRIGGER_SZ 1
 
-/* TypeDefs and Structs */
-// typedef USART_Handle{
-//     UART_HandleTypeDef  usart_h,
-//     QueueHandle_t       queue_h,
-//     SemaphoreHandle_t   sema_h,
+// UART Receive Queues
+extern QueueHandle_t ROSQueue;
 
-// }DAT_USART_Handle_t;
+// Add your Sensor Name Here
+typedef enum UART_SENSORS{
+	ROS,
+    
+	SENSOR_TOTAL
 
-/* Public Variables */
-extern QueueHandle_t DebugQueue;
-extern UART_HandleTypeDef huart3;
+}UART_SENSORS_t;
 
 /* Public Functions */
 /**
- * @brief Function to enable the debug usart isr callbacks
+ * @brief Initializes all defined UART interfaces
  * 
+ * @return HAL_StatusTypeDef 
  */
-void EnableDebug(void);
+void UART_Init(void);
 /**
- * @brief 
- * 
+ * @brief UART and DMA Write Wrapper for the ROS interface.
+ * Starts a DMA transfer for ROS interface
+ * @param buffer, pointer to the buffer of data to be written
+ * @param size, size of the buffer to be written
+ * @param timeout, time the function call will until a timeout occurs
+ * @return HAL_StatusTypeDef, HAL_OK on success, HAL_TIMEOUT on timeout. 
  */
-void Request_Debug_Read(void);
-/**
- * @brief 
- * 
- * @param format 
- * @param ... 
- */
-void DebugWrite(const char * format, ...);
-/**
- * @brief 
- * 
- * @param format 
- * @param ... 
- */
-void DebugWriteUnprotected(const char * format, ...);
-/**
- * @brief 
- * 
- */
-void TASKDebugParser(void);
+HAL_StatusTypeDef ROS_Write(uint8_t * buffer, uint16_t size, uint32_t timeout);
+
 
