@@ -15,20 +15,15 @@
 #include "task.h"
 #include "Peripherals/usart.h"
 #include "System/TaskCtrl.h"
-#include "System/ROS_Handler.h"
 
 static void TASKHeartBeat(void);
 
 uint8_t SysTask_Init(void){
 	/* Added task to Kernel List */
-//	 if(pdPASS != xTaskCreate(TASKHeartBeat,"HeartBeat",
-//	 		configMINIMAL_STACK_SIZE + 100, NULL, tskIDLE_PRIORITY +1, NULL)){
-//	 	return -1;
-//	 }
-	if(pdPASS != xTaskCreate(ROSHandler,"ROS Handler",
-		configMINIMAL_STACK_SIZE + 100,NULL,tskIDLE_PRIORITY +2,NULL)){
-			return -1;
-	}
+	 if(pdPASS != xTaskCreate(TASKHeartBeat,"HeartBeat",
+	 		configMINIMAL_STACK_SIZE + 100, NULL, tskIDLE_PRIORITY +1, NULL)){
+	 	return -1;
+	 }
 	return 0;
 }
 
