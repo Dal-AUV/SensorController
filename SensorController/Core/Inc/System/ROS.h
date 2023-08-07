@@ -14,64 +14,10 @@
 /* Headers */
 #include "FreeRTOS.h"
 #include "queue.h"
-
+#include "ROS_Dictionary.h"
 /* Macros and Structures */
 #define MAX_PKT_LENGTH 100
 #define MAX_OPCODE_LEN 2
-
-
-// Protocol Opcodes
-#define HEADER         "$"
-#define OPCODE_START   "<"
-#define OPCODE_END     ">"
-#define DELIMITER      ":" 
-
-#define OP_ARHS        "AH"
-
-#define OP_THRUSTER_1  "T1"
-#define OP_THRUSTER_2  "T2"
-#define OP_THRUSTER_3  "T3"
-#define OP_THRUSTER_4  "T4"
-#define OP_THRUSTER_5  "T5"
-#define OP_THRUSTER_6  "T6"
-
-#define OP_TEMP_1      "C1"
-#define OP_TEMP_2      "C2"
-
-#define OP_PRESSURE_1  "P1"
-#define OP_PRESSURE_2  "P2"
-
-typedef struct AHRS_Pkt 
-{
-    float yaw;
-    float pitch;
-    float roll;
-}AHRS_Pkt_t;
-
-typedef struct Temp_Pkt
-{
-    uint8_t id;
-    float temp;
-}Temp_Pkt_t;
-
-typedef struct Pressure_Pkt
-{
-    uint8_t id;
-    float pressure;
-}Pressure_Pkt_t;
-
-typedef union GenericPkt
-{
-    AHRS_Pkt_t      ahrs;
-    Temp_Pkt_t      temp;
-    Pressure_Pkt_t  pressure;
-}GenericPkt_t;
-
-struct Node{
-    GenericPkt_t pkt;
-    enum id;
-    struct Node* next;
-}
 
 /* Public Variables */
 
@@ -88,4 +34,13 @@ void ROS_Reader(void * arguments);
  * @param arguments (not handled)
  */
 void ROS_Writer(void * arguments);
+/**
+ * @brief Get the Opcode Id object
+ * 
+ * @param code 
+ * @param size 
+ * @return ePKT_ID_t 
+ */
+ePKT_ID_t GetOpcodeId(char* code, uint16_t size);
 #endif /* __INC_ROS_HANDLER_H_ */
+

@@ -15,6 +15,9 @@
 #include "FreeRTOS.h"
 #include "queue.h"
 #include "System/TaskCtrl.h"
+#include "System/ROS_Nodes.h"
+#include "System/ROS.h"
+#include "System/ROS_Dictionary.h"
 #include "Peripherals/usart.h"
 
 typedef enum Read_FSM {
@@ -44,16 +47,30 @@ typedef enum Data_FSM{
 
 Read_FSM_t header_check(uint8_t * byte);
 Opcode_FSM_t opcode_check(uint8_t * byte);
+Read_FSM_t data_FSM(Data_FSM_t * state, uint8_t * byte,struct Node* head, 
+    uint8_t * read_cnt, uint8_t * buffer);
+int opcode_add_to_list(struct Node* head, char* opcode, uint16_t size);
 
-struct Node* createNode(GenericPkt_t item);
-void append_node(struct Node** head, GenericPkt_t item);
-void pop_node(struct Node** head);
-void freelist(struct Node* head);
+ePKT_ID_t GetOpcodeId(char* code, uint16_t size){
+    for(int i = 0; i < NUM_OF_OPCODES; i++){
+        if(strncmp(code,opcode_dictionary[i],OPCODE_SIZE)){
+            return i;
+        }
+    }
+    return BAD_PKT;
+}
 
 void ROS_Reader(void * arguments)
 {
-    Read_FSM_t state = RFSM_waiting;
+    // struct NodeList {
+    //     struct Node* head;
+    //     struct Node* tail;
+    // }list;
     
+    struct Node* list_head = NULL;
+
+    Read_FSM_t state = RFSM_waiting;
+    Data_FSM_t data_state = DFSM_start;
     uint8_t csum = 0;
     uint8_t byte = 0;
     uint8_t num_opcodes = 0;
@@ -68,11 +85,21 @@ void ROS_Reader(void * arguments)
         if(xQueueReceive(ROSQueue,&byte,portMAX_DELAY)){
             state = RFSM_error;
         }
-
+        csum ^= byte;
         switch(state)
         {
         RFSM_waiting:
-            state = header_check(&byte); 
+            switch(header_check(&byte))
+            {
+                RFSM_opcodes:
+                    state = RFSM_opcodes;
+                    break;
+                RFSM_error:
+                    state = RFSM_error;
+                    break;
+                default:
+                    break;
+            } 
         break;
 
         RFSM_opcode:
@@ -83,45 +110,76 @@ void ROS_Reader(void * arguments)
                     state = RFSM_error;
                 }else{
                     cur_opcode[opcode_reads++] = (char)(byte);
-                    if(opcode_reads ==2){
+                    if(opcode_reads == 2){
                         opcode_flag = 1;
                     }
                 }
             break;
             OFSM_delimiter: /* Delimiter found goto data state*/
                 state = RFSM_data;
-            break;
-            OFSM_end: /*  */
-                memset(cur_opcode,0,sizeof(char)*MAX_OPCODE_LEN);
-                num_opcodes++;
                 break;
-            break;
+            OFSM_end: /* New OPCODE Found, add it to the list */
+                if(opcode_add_to_list(list_head, cur_opcode, OPCODE_SIZE)){
+                    state = RFSM_error;
+                }else{
+                    num_opcodes++;
+                }
+                break;
             OFSM_start: /* clear opcode flag */
                 opcode_flag = 0;
-            break;
+                break;
             default:
                 state = RFSM_error;
-            break;
+                break;
             }
-        break;
+            break;
         
         RFSM_data:
 
-        break;
+            break;
         
         RFSM_csum:
 
-        break;
+            break;
 
         default: // Error's will go to FSM_ERROR statement
         
-        break;
+            break;
         }
         // FSM Loop clean up
         if(state == RFSM_error || state == RFSM_reset){
-        
+            freelist(list_head);
         }
     }   
+}
+Read_FSM_t data_FSM(Data_FSM_t * state, uint8_t * byte,struct Node* head, 
+    uint8_t * read_cnt, uint8_t * buffer, uint16_t size, uint8_t item_num);
+{
+    assert(state);
+    assert(byte);
+    assert(head);
+    assert(read_cnt);
+    assert(buffer);
+    
+    DFSM_end,
+    DFSM_delimiter,
+    DFSM_error
+
+    switch (*state)
+    {
+    case DFSM_read:
+        *buffer[read_cnt++] = *byte;
+        break;
+    DFSM_end:
+
+        break;
+    default:
+        break;
+    }
+
+
+
+
 }
 /**
  * @brief 
@@ -161,52 +219,25 @@ Opcode_FSM_t opcode_check(uint8_t * byte)
     }
 }
 /**
- * @brief Create a Node object
- * 
- * @param pkt 
- * @return struct Node* 
- */
-struct Node* createNode(GenericPkt_t pkt){
-    struct Node* newNode = (struct Node*)pvPortMalloc(sizeof(struct Node));
-    if(newNode == NULL){
-        return NULL;
-    }
-    newNode->pkt = pkt;
-    newNode->next = NULL;
-    return newNode;
-}
-
-/**
  * @brief 
  * 
- * @param head 
+ * @param tail 
+ * @param code 
+ * @param size 
+ * @return int 
  */
-void freeList(struct Node* head)
-{
-    struct Node* current = head;
-    struct Node* next;
+int opcode_add_to_list(struct Node* head, char* opcode, uint16_t size){
+    assert(head);
+    assert(opcode);
 
-    while(current != NULL){
-        next = current->next;
-        vPortFree(current);
-        current = next;
+    GenericPkt_t pkt; 
+    pkt.id = GetOpcodeId(opcode,size);
+    if(pkt.id == BAD_PKT) {
+        return -1;
+    }else{
+        memset(opcode,"00",size);
+        append_node(head,pkt);
+        return 0;
     }
-    return;
-}
-/**
- * @brief 
- * 
- * @param head 
- * @param pkt 
- */
-void append_node(struct Node** head, GenericPkt_t pkt)
-{
-    struct Node* newNode = createNode(pkt);
-    if(*head == NULL){
-        *head = newNode;
-        return;
-    }
-
-    struct Node* lastNode = *head;
-    while(lastNode->next != next)
+    return -1;
 }
