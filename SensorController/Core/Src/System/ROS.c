@@ -14,7 +14,7 @@
 #include "main.h"
 #include "FreeRTOS.h"
 #include "queue.h"
-#include "System/TaskCtrl.h"
+#include "System/OS_Ctrl.h"
 #include "System/ROS.h"
 #include "Peripherals/usart.h"
 
@@ -30,40 +30,38 @@ ROS_t ROS;
 /* End of Global Variables */
 
 /* Private Prototypes */
-void ROS_Decoder_Reset(void);
-uint8_t ROS_Check_Opcode(uint8_t * byte);
+void ROS_Dispatcher(void);
+void ROS_DecoderReset(void);
+uint8_t ROS_CheckOpcode(uint8_t * byte);
 /* End Of Prototypes */
 
 /* RTOS Tasks */
-void ROS_Reader_Task(void * arguments)
+void ROS_ReaderTask(void * arguments)
 {
-    char packet[MAX_PKT_LENGTH];
     uint8_t byte = 0;
-
-    ROSDecoder_t state = ROS_Decoder_Header;
     while(1){
-        if(pdFAIL == xQueueReceive(ROSQueue,&byte,portMAX_DELAY)){
-            ROS_Decoder_Reset();
+        if(pdFAIL == xQueueReceive(ROSReaderQueue,&byte,portMAX_DELAY)){
+            ROS_DecoderReset();
         }
         switch(ROS.decoder.state)
         {
         case ROS_Decoder_Header:
-            if(ROS_Check_Opcode(&byte)){
+            if(ROS_CheckOpcode(&byte)){
                 // Error, reset decoder
-                ROS_Decoder_Reset();
+                ROS_DecoderReset();
             }else{
                 ROS.decoder.csum ^= byte;
-                ROS.rx.pkt.buffer[ROS.decoder.cur_len++];
+                ROS.rx.pkt.buffer[ROS.decoder.cur_len++] = byte;
                 ROS.decoder.state = ROS_Decoder_Data;
             }
         break;
 
         case ROS_Decoder_Data:
             ROS.decoder.csum ^= byte;
-            ROS.rx.pkt.buffer[ROS.decoder.cur_len++];
+            ROS.rx.pkt.buffer[ROS.decoder.cur_len++] = byte;
             if(ROS.decoder.cur_len == ROS.decoder.pkt_len){
                 ROS_Dispatcher();
-                ROS_Decoder_Reset();
+                ROS_DecoderReset();
             }
         break;
         
@@ -73,30 +71,32 @@ void ROS_Reader_Task(void * arguments)
 
         default:
             // Error, reset decoder
-            ROS_Decoder_Reset();
+            ROS_DecoderReset();
         }   
     }
 
 }
 
-ROS_Writer_Task(void * arguments){
+void ROS_WriterTask(void * arguments){
     
     while(1){
 
         if(pdFAIL == xQueueReceive(ROS_Writer_Queue,&ROS.tx, portMAX_DELAY)){
             continue;
         }
-
+        // Send Packet through ROS UART
+        ROS_Calculate_CSUM(&ROS.tx,sizeof(ROS.tx.id));
+        ROS_Write(ROS.tx.pkt.buffer,(uint16_t)ROS_GetPktLen(ROS.tx.id),portMAX_DELAY);
     }
 }
 /* End Of RTOS Tasks */
 
 /* Public Functions*/
-void ROS_Enable_Decoder(void){
-    ROS_Decoder_Reset();
+void ROS_EnableDecoder(void){
+    ROS_DecoderReset();
 }
 
-void ROS_Disable_Decoder(void){
+void ROS_DisableDecoder(void){
     
     ROS.decoder.csum    = 0;
     ROS.decoder.pkt_len = 0;
@@ -105,14 +105,42 @@ void ROS_Disable_Decoder(void){
 
 }
 
+uint8_t ROS_GetPktLen(ROS_PktId_t id){
+    uint8_t size = 0;
+    
+    switch (id)
+    {
+    case ROS_Thurster:
+        size = sizeof(Thruster_Pkt_t);
+        break;
+    case ROS_AHRS:
+        size = sizeof(AHRS_Pkt_t);
+        break;
+    case ROS_Temperature:
+        size = sizeof(Temp_Pkt_t);
+        break;
+    case ROS_Pressure:
+        size = sizeof(Pressure_Pkt_t); 
+    default:
+        break;
+    }
+    return size;
+}
 /* End of Public Functions*/
 
 /* Private Functions */
+/**
+ * @brief Dispatch the command to proper sensor interface
+ * 
+ */
 void ROS_Dispatcher(void){
-
+    // TODO Determine how command gets dispatched
+    // Echoing packet
+    ROS_Write(ROS.rx.pkt.buffer,(uint16_t)ROS_GetPktLen(ROS.rx.id),portMAX_DELAY);
+    return;
 }
 
-void ROS_Calculate_CSUM(GenericPkt_t * pkt, uint8_t len){
+void ROS_CalculateCSUM(GenericPkt_t * pkt, uint8_t len){
     pkt->pkt.buffer[0] = 0;
     for(uint8_t i = 0; i<(len-1); ++i){
         pkt->pkt.buffer[len-1] ^= pkt->pkt.buffer[i];
@@ -120,7 +148,7 @@ void ROS_Calculate_CSUM(GenericPkt_t * pkt, uint8_t len){
     return;
 }
 
-uint8_t ROS_Verify_CSUM(GenericPkt_t * pkt, uint8_t len){
+uint8_t ROS_VerifyCSUM(GenericPkt_t * pkt, uint8_t len){
     uint8_t csum = 0;
     for(uint8_t i = 0; i<len-1; ++i){
         csum ^= pkt->pkt.buffer[i];
@@ -132,7 +160,7 @@ uint8_t ROS_Verify_CSUM(GenericPkt_t * pkt, uint8_t len){
     }
 }
 
-void ROS_Decoder_Reset(void){
+void ROS_DecoderReset(void){
     
     ROS.decoder.csum    = 0;
     ROS.decoder.pkt_len = 0;
@@ -142,29 +170,29 @@ void ROS_Decoder_Reset(void){
     return;
 }
 
-uint8_t ROS_Check_Opcode(uint8_t * byte){
+uint8_t ROS_CheckOpcode(uint8_t * byte){
     assert(byte);
     uint8_t rc = 0;
 
     switch(*byte){
         case ROS_Thurster:
-            ROS.rx.opcode = ROS_Thurster;
+            ROS.rx.id = ROS_Thurster;
             ROS.decoder.pkt_len = sizeof(Thruster_Pkt_t);
             break;
         case ROS_AHRS:
-            ROS.rx.opcode = ROS_AHRS;
+            ROS.rx.id = ROS_AHRS;
             ROS.decoder.pkt_len = sizeof(AHRS_Pkt_t);
             break;
         case ROS_Temperature:
-            ROS.rx.opcode = ROS_Temperature;
+            ROS.rx.id = ROS_Temperature;
             ROS.decoder.pkt_len = sizeof(Temp_Pkt_t);
             break;
         case ROS_Pressure:
-            ROS.rx.opcode = ROS_Pressure;
+            ROS.rx.id = ROS_Pressure;
             ROS.decoder.pkt_len = sizeof(Pressure_Pkt_t);
             break;
         default:
-            ROS.rx.opcode = BAD_PKT;
+            ROS.rx.id = BAD_PKT;
             rc = 1;
             break;
     }
@@ -172,3 +200,4 @@ uint8_t ROS_Check_Opcode(uint8_t * byte){
     return rc;
 }
  /* End of Private Functions */
+/// EOF

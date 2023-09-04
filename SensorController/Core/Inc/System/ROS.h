@@ -14,34 +14,14 @@
 /* Headers */
 #include "FreeRTOS.h"
 #include "queue.h"
-/* Macros and Structures */
-#define MAX_PKT_LENGTH 100
-#define MAX_OPCODE_LEN 2
-#define HEADER         "$"
-#define OPCODE_START   "<"
-#define OPCODE_END     ">"
-#define DELIMITER      ":" 
 
-#define OP_ARHS        "AH"
+/* Macros */
+#define MAX_PKT_LENGTH 80
+/* End of Macros */
 
-#define OP_THRUSTER_1  "T1"
-#define OP_THRUSTER_2  "T2"
-#define OP_THRUSTER_3  "T3"
-#define OP_THRUSTER_4  "T4"
-#define OP_THRUSTER_5  "T5"
-#define OP_THRUSTER_6  "T6"
-
-#define OP_TEMP_1      "C1"
-#define OP_TEMP_2      "C2"
-
-#define OP_PRESSURE_1  "P1"
-#define OP_PRESSURE_2  "P2"
-
-#define NUM_OF_OPCODES 11
-#define OPCODE_SIZE    2
-
-
-typedef enum PKT_ID
+/* Structures */
+/// @brief Packet Opcodes
+typedef enum ROS_PktId_e
 {
     ROS_ACK         = 0x00,
     ROS_Thurster    = 0x01,
@@ -51,8 +31,8 @@ typedef enum PKT_ID
     
     BAD_PKT         = 0xFF,
     
-}ePKT_ID_t;
-
+}ROS_PktId_t;
+/// Packet Structures
 typedef struct Thruster_Pkt_s
 {
     uint8_t opcode;
@@ -94,7 +74,7 @@ typedef struct Pressure_Pkt_s
 
 typedef struct GenericPkt_s
 {
-    ePKT_ID_t id;
+    ROS_PktId_t id;
     union
     {
         Thruster_Pkt_t  thruster;
@@ -105,6 +85,7 @@ typedef struct GenericPkt_s
     }pkt;
 }GenericPkt_t;
 
+/// Packet Size Dictionary
 typedef enum ROSDecoder_e
 {
     ROS_Decoder_Disable,
@@ -139,19 +120,20 @@ extern QueueHandle_t ROS_Writer_Queue;
  * 
  * @param arguments (not handled)
  */
-void ROS_Reader_Task(void * arguments);
+void ROS_ReaderTask(void * arguments);
 /**
  * @brief The Writer Task for the ROS Interface
  * 
  * @param arguments (not handled)
  */
-void ROS_Writer_Task(void * arguments);
-/**
- * @brief Get the Opcode Id object
- * 
- * @param code 
- * @param size 
- * @return ePKT_ID_t 
- */
+void ROS_WriterTask(void * arguments);
+
+void ROS_Init(void);
+
+void ROS_EnableDecoder(void);
+
+void ROS_DisableDecoder(void);
+
+uint8_t ROS_GetPktLen(ROS_PktId_t id);
 #endif /* __INC_ROS_HANDLER_H_ */
 

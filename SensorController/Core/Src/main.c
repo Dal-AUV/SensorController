@@ -26,6 +26,7 @@
 #include "FreeRTOS.h"
 #include "task.h"
 #include "System/TaskCtrl.h"
+#include "System/OS_Ctrl.h"
 #include "Peripherals/usart.h"
 #include "Peripherals/dma.h"
 /* USER CODE END Includes */
@@ -118,9 +119,12 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_DMA_Init();
-  UART_Init();
+
   /* USER CODE BEGIN 2 */
-  SysTask_Init();
+  UART_Init();
+  OS_SemaphoreInit();
+  OS_MutexesInit();
+  OS_QueuesInit();
   vTaskStartScheduler();
   /* USER CODE END 2 */
 
