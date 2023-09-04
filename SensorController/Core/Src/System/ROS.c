@@ -1,6 +1,6 @@
 /**
- * @file ROS_Handler.c
- * @author your name (you@domain.com)
+ * @file ROS.c
+ * @author Matthew Cockburn 
  * @brief 
  * @version 0.1
  * @date 2023-06-10
@@ -15,229 +15,160 @@
 #include "FreeRTOS.h"
 #include "queue.h"
 #include "System/TaskCtrl.h"
-#include "System/ROS_Nodes.h"
 #include "System/ROS.h"
-#include "System/ROS_Dictionary.h"
 #include "Peripherals/usart.h"
 
-typedef enum Read_FSM {
-    RFSM_waiting,
-    RFSM_opcodes,
-    RFSM_data,
-    RFSM_csum,
-    RFSM_reset,
-    RFSM_error
-} Read_FSM_t;
+/* Macros */
+#define ROS_DECODER_SLEEP_MS  60000 // 1 minute
+/* End of Macros */
 
-typedef enum Opcode_FSM{
-    OFSM_start,
-    OFSM_read,
-    OFSM_end,
-    OFSM_delimiter,
-    OFSM_error
-}Opcode_FSM_t;
+/* External Global Variables */
+QueueHandle_t ROS_Writer_Queue;
 
-typedef enum Data_FSM{
-    DFSM_read,
-    DFSM_start,
-    DFSM_end,
-    DFSM_delimiter,
-    DFSM_error
-}Data_FSM_t;
+/* Local Global Variables */
+ROS_t ROS;
+/* End of Global Variables */
 
-Read_FSM_t header_check(uint8_t * byte);
-Opcode_FSM_t opcode_check(uint8_t * byte);
-Read_FSM_t data_FSM(Data_FSM_t * state, uint8_t * byte,struct Node* head, 
-    uint8_t * read_cnt, uint8_t * buffer);
-int opcode_add_to_list(struct Node* head, char* opcode, uint16_t size);
+/* Private Prototypes */
+void ROS_Decoder_Reset(void);
+uint8_t ROS_Check_Opcode(uint8_t * byte);
+/* End Of Prototypes */
 
-ePKT_ID_t GetOpcodeId(char* code, uint16_t size){
-    for(int i = 0; i < NUM_OF_OPCODES; i++){
-        if(strncmp(code,opcode_dictionary[i],OPCODE_SIZE)){
-            return i;
+/* RTOS Tasks */
+void ROS_Reader_Task(void * arguments)
+{
+    char packet[MAX_PKT_LENGTH];
+    uint8_t byte = 0;
+
+    ROSDecoder_t state = ROS_Decoder_Header;
+    while(1){
+        if(pdFAIL == xQueueReceive(ROSQueue,&byte,portMAX_DELAY)){
+            ROS_Decoder_Reset();
         }
+        switch(ROS.decoder.state)
+        {
+        case ROS_Decoder_Header:
+            if(ROS_Check_Opcode(&byte)){
+                // Error, reset decoder
+                ROS_Decoder_Reset();
+            }else{
+                ROS.decoder.csum ^= byte;
+                ROS.rx.pkt.buffer[ROS.decoder.cur_len++];
+                ROS.decoder.state = ROS_Decoder_Data;
+            }
+        break;
+
+        case ROS_Decoder_Data:
+            ROS.decoder.csum ^= byte;
+            ROS.rx.pkt.buffer[ROS.decoder.cur_len++];
+            if(ROS.decoder.cur_len == ROS.decoder.pkt_len){
+                ROS_Dispatcher();
+                ROS_Decoder_Reset();
+            }
+        break;
+        
+        case ROS_Decoder_Disable:
+            vTaskDelay(pdMS_TO_TICKS(ROS_DECODER_SLEEP_MS));
+            break;
+
+        default:
+            // Error, reset decoder
+            ROS_Decoder_Reset();
+        }   
     }
-    return BAD_PKT;
+
 }
 
-void ROS_Reader(void * arguments)
-{
-    // struct NodeList {
-    //     struct Node* head;
-    //     struct Node* tail;
-    // }list;
+ROS_Writer_Task(void * arguments){
     
-    struct Node* list_head = NULL;
-
-    Read_FSM_t state = RFSM_waiting;
-    Data_FSM_t data_state = DFSM_start;
-    uint8_t csum = 0;
-    uint8_t byte = 0;
-    uint8_t num_opcodes = 0;
-    uint8_t opcode_reads = 0;
-    uint8_t opcode_flag = 0;
-
-    char cur_opcode[MAX_OPCODE_LEN];
-    char packet[MAX_PKT_LENGTH];
-
     while(1){
 
-        if(xQueueReceive(ROSQueue,&byte,portMAX_DELAY)){
-            state = RFSM_error;
+        if(pdFAIL == xQueueReceive(ROS_Writer_Queue,&ROS.tx, portMAX_DELAY)){
+            continue;
         }
-        csum ^= byte;
-        switch(state)
-        {
-        RFSM_waiting:
-            switch(header_check(&byte))
-            {
-                RFSM_opcodes:
-                    state = RFSM_opcodes;
-                    break;
-                RFSM_error:
-                    state = RFSM_error;
-                    break;
-                default:
-                    break;
-            } 
-        break;
 
-        RFSM_opcode:
-            switch(opcode_check(&byte))
-            {
-            OFSM_read: /* Construct the opcode */
-                if(opcode_flag){
-                    state = RFSM_error;
-                }else{
-                    cur_opcode[opcode_reads++] = (char)(byte);
-                    if(opcode_reads == 2){
-                        opcode_flag = 1;
-                    }
-                }
-            break;
-            OFSM_delimiter: /* Delimiter found goto data state*/
-                state = RFSM_data;
-                break;
-            OFSM_end: /* New OPCODE Found, add it to the list */
-                if(opcode_add_to_list(list_head, cur_opcode, OPCODE_SIZE)){
-                    state = RFSM_error;
-                }else{
-                    num_opcodes++;
-                }
-                break;
-            OFSM_start: /* clear opcode flag */
-                opcode_flag = 0;
-                break;
-            default:
-                state = RFSM_error;
-                break;
-            }
-            break;
-        
-        RFSM_data:
-
-            break;
-        
-        RFSM_csum:
-
-            break;
-
-        default: // Error's will go to FSM_ERROR statement
-        
-            break;
-        }
-        // FSM Loop clean up
-        if(state == RFSM_error || state == RFSM_reset){
-            freelist(list_head);
-        }
-    }   
+    }
 }
-Read_FSM_t data_FSM(Data_FSM_t * state, uint8_t * byte,struct Node* head, 
-    uint8_t * read_cnt, uint8_t * buffer, uint16_t size, uint8_t item_num);
-{
-    assert(state);
-    assert(byte);
-    assert(head);
-    assert(read_cnt);
-    assert(buffer);
+/* End Of RTOS Tasks */
+
+/* Public Functions*/
+void ROS_Enable_Decoder(void){
+    ROS_Decoder_Reset();
+}
+
+void ROS_Disable_Decoder(void){
     
-    DFSM_end,
-    DFSM_delimiter,
-    DFSM_error
-
-    switch (*state)
-    {
-    case DFSM_read:
-        *buffer[read_cnt++] = *byte;
-        break;
-    DFSM_end:
-
-        break;
-    default:
-        break;
-    }
-
-
-
+    ROS.decoder.csum    = 0;
+    ROS.decoder.pkt_len = 0;
+    ROS.decoder.cur_len = 0;
+    ROS.decoder.state   = ROS_Decoder_Disable;
 
 }
-/**
- * @brief 
- * 
- * @param byte 
- * @return Read_FSM_t 
- */
-Read_FSM_t header_check(uint8_t * byte)
-{
-    assert(byte);
 
-    if((char)(*byte) == HEADER){
-        return RFSM_opcodes;
-    } else {
-        return RFSM_waiting;
-    }
-    return RFSM_error;
+/* End of Public Functions*/
+
+/* Private Functions */
+void ROS_Dispatcher(void){
+
 }
-/**
- * @brief 
- * 
- * @param byte 
- * @return Opcode_FSM_t 
- */
-Opcode_FSM_t opcode_check(uint8_t * byte)
-{
-    assert(byte);
-    char chr = (char)*byte;
-    if(chr == OPCODE_START){
-        return OFSM_start;
-    }else if(chr == OPCODE_END){
-        return OFSM_end;
-    }else if (chr == DELIMITER){
-        return OFSM_delimiter;
+
+void ROS_Calculate_CSUM(GenericPkt_t * pkt, uint8_t len){
+    pkt->pkt.buffer[0] = 0;
+    for(uint8_t i = 0; i<(len-1); ++i){
+        pkt->pkt.buffer[len-1] ^= pkt->pkt.buffer[i];
+    }
+    return;
+}
+
+uint8_t ROS_Verify_CSUM(GenericPkt_t * pkt, uint8_t len){
+    uint8_t csum = 0;
+    for(uint8_t i = 0; i<len-1; ++i){
+        csum ^= pkt->pkt.buffer[i];
+    }
+    if(csum != pkt->pkt.buffer[len-1]){
+        return 1;
     }else{
-        return OFSM_read;
-    }
-}
-/**
- * @brief 
- * 
- * @param tail 
- * @param code 
- * @param size 
- * @return int 
- */
-int opcode_add_to_list(struct Node* head, char* opcode, uint16_t size){
-    assert(head);
-    assert(opcode);
-
-    GenericPkt_t pkt; 
-    pkt.id = GetOpcodeId(opcode,size);
-    if(pkt.id == BAD_PKT) {
-        return -1;
-    }else{
-        memset(opcode,"00",size);
-        append_node(head,pkt);
         return 0;
     }
-    return -1;
 }
+
+void ROS_Decoder_Reset(void){
+    
+    ROS.decoder.csum    = 0;
+    ROS.decoder.pkt_len = 0;
+    ROS.decoder.cur_len = 0;
+    ROS.decoder.state   = ROS_Decoder_Header;
+
+    return;
+}
+
+uint8_t ROS_Check_Opcode(uint8_t * byte){
+    assert(byte);
+    uint8_t rc = 0;
+
+    switch(*byte){
+        case ROS_Thurster:
+            ROS.rx.opcode = ROS_Thurster;
+            ROS.decoder.pkt_len = sizeof(Thruster_Pkt_t);
+            break;
+        case ROS_AHRS:
+            ROS.rx.opcode = ROS_AHRS;
+            ROS.decoder.pkt_len = sizeof(AHRS_Pkt_t);
+            break;
+        case ROS_Temperature:
+            ROS.rx.opcode = ROS_Temperature;
+            ROS.decoder.pkt_len = sizeof(Temp_Pkt_t);
+            break;
+        case ROS_Pressure:
+            ROS.rx.opcode = ROS_Pressure;
+            ROS.decoder.pkt_len = sizeof(Pressure_Pkt_t);
+            break;
+        default:
+            ROS.rx.opcode = BAD_PKT;
+            rc = 1;
+            break;
+    }
+
+    return rc;
+}
+ /* End of Private Functions */
