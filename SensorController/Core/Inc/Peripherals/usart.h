@@ -21,12 +21,9 @@
 #define MAX_USART_QUEUE_SIZE 80
 #define UART_RX_ISR_TRIGGER_SZ 1
 
-// UART Receive Queues
-extern QueueHandle_t ROSQueue;
-
 // Add your Sensor Name Here
 typedef enum UART_SENSORS{
-	ROS,
+	UART_ROS,
     
 	SENSOR_TOTAL
 

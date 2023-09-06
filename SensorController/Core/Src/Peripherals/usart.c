@@ -21,6 +21,7 @@
 #include "semphr.h"
 /* Application Headers */
 #include "Peripherals/usart.h"
+#include "System/OS_Ctrl.h"
 
 /* Macros */
 
@@ -35,10 +36,6 @@ UART_HandleTypeDef huart2;
 DMA_HandleTypeDef hdma_usart3_rx;
 DMA_HandleTypeDef hdma_usart3_tx;
 
-// UART Queues
-QueueHandle_t ROSQueue;
-// UART Interface Locks
-SemaphoreHandle_t ROSMutex;
 // Receive Buffers
 uint8_t ROSBuf[MAX_USART_BUF_SIZE];
 
@@ -70,7 +67,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
 
     if(huart == &huart3){
 
-        xStatus = xQueueSendToBackFromISR(ROSQueue,ROSBuf,NULL);
+        xStatus = xQueueSendToBackFromISR(ROSReaderQueue,ROSBuf,NULL);
         HAL_UART_Receive_IT(&huart3, ROSBuf, UART_RX_ISR_TRIGGER_SZ);
     }
     if(xStatus == pdPASS){
@@ -82,7 +79,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart){
 
 	if(huart == &huart3){
-		xSemaphoreGiveFromISR(ROSMutex,NULL);
+		xSemaphoreGiveFromISR(ROSReaderSemphr,NULL);
 	}
 
 	return;
@@ -153,9 +150,6 @@ void MX_USART3_UART_Init(void)
     Error_Handler();
   }
   /* USER CODE BEGIN USART3_Init 2 */
-  ROSQueue = xQueueCreate(MAX_USART_QUEUE_SIZE, sizeof(uint8_t));
-  ROSMutex = xSemaphoreCreateBinary();
-  xSemaphoreGive(ROSMutex);
   HAL_UART_Receive_IT(&huart3, ROSBuf, UART_RX_ISR_TRIGGER_SZ);
   /* USER CODE END USART3_Init 2 */
 
@@ -170,7 +164,7 @@ HAL_StatusTypeDef UART_DMA_Write(UART_HandleTypeDef *huart, uint8_t * buf, uint1
 
 	if(size == 0) return HAL_OK;
 
-	if(!xSemaphoreTake(ROSMutex, pdMS_TO_TICKS(timeout))){
+	if(!xSemaphoreTake(ROSReaderSemphr ,pdMS_TO_TICKS(timeout))){
 		return HAL_TIMEOUT;
 	}
 
