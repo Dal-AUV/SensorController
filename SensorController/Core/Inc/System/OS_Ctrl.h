@@ -11,12 +11,27 @@
  */
 #ifndef _INC_OS_CTRL_H_
 #define _INC_OS_CTRL_H_
+/* Headers */
 #include "FreeRTOS.h"
+#include "task.h"
 #include "queue.h"
 #include "semphr.h"
+/* Macros */
+// Task Config
+#define IMU_PRI         tskIDLE_PRIORITY + 1       
+#define PRESSURE_PRI    tskIDLE_PRIORITY + 1
+
+#define IMU_STACK_SIZE          configMINIMAL_STACK_SIZE + 100
+#define PRESSURE_STACK_SIZE     configMINIMAL_STACK_SIZE + 100
+// Queue Config
+#define IMU_QUEUE_SIZE     200
+#define PRESSURE_QUEUE_SIZE 200
 
 /* Extrenal Variables */
 extern QueueHandle_t     ROSReaderQueue;
+extern QueueHandle_t     IMU_ReaderQueue;
+extern QueueHandle_t     PRESSURE_ReaderQueue;
+
 extern SemaphoreHandle_t ROSReaderSemphr; 
 /**
  * @brief Initalize all tasks run by the RTOS kernel
