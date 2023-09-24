@@ -13,7 +13,7 @@
 #ifndef _INC_BUILD_H_
 #define _INC_BUILD_H_
 
-#define TEST_IMU
-#define TEST_PRESSURE
+//#define TEST_IMU
+//#define TEST_PRESSURE
 
 #endif
