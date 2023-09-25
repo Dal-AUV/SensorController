@@ -12,6 +12,7 @@
 /* Headers */
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "FreeRTOS.h"
 #include "task.h"
 #include "queue.h"
@@ -21,7 +22,7 @@
 #include "Sensors/imu.h"
 
 /* Macros */
-#define IMU_TASK_DELAY_MS 1000 // milliseconds
+#define IMU_TASK_DELAY_MS 100 // milliseconds
 #define TEST_BUFFER 50
 /* Data Structures */
 

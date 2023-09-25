@@ -18,17 +18,22 @@
 #include "semphr.h"
 /* Macros */
 // Task Config
+#define ROS_WRITER_PRI  tskIDLE_PRIORITY + 4
+#define ROS_READER_PRI  tskIDLE_PRIORITY + 4
 #define IMU_PRI         tskIDLE_PRIORITY + 1       
 #define PRESSURE_PRI    tskIDLE_PRIORITY + 1
 
-#define IMU_STACK_SIZE          configMINIMAL_STACK_SIZE + 100
-#define PRESSURE_STACK_SIZE     configMINIMAL_STACK_SIZE + 100
+#define ROS_WRITER_STACK_SIZE  	configMINIMAL_STACK_SIZE
+#define ROS_READER_STACK_SIZE	configMINIMAL_STACK_SIZE + 100
+#define IMU_STACK_SIZE          configMINIMAL_STACK_SIZE
+#define PRESSURE_STACK_SIZE     configMINIMAL_STACK_SIZE
 // Queue Config
 #define IMU_QUEUE_SIZE     200
 #define PRESSURE_QUEUE_SIZE 200
 
-/* Extrenal Variables */
-extern QueueHandle_t     ROSReaderQueue;
+/* External Variables */
+extern QueueHandle_t     ROS_ReaderQueue;
+extern QueueHandle_t 	 ROS_WriterQueue;
 extern QueueHandle_t     IMU_ReaderQueue;
 extern QueueHandle_t     PRESSURE_ReaderQueue;
 
