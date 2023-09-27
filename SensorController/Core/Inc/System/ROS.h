@@ -62,14 +62,18 @@ typedef struct ROS_Callbacks_s
 
 /* Public Prototypes */
 /**
- * @brief The Reader Task for the ROS Interface
- * 
+ * @brief The Reader Task for the ROS Interface,
+ * This tasks uses the ROS Decoder State Machine 
+ * that is serviced every 30 seconds
  * @param arguments (not handled)
  */
 void ROS_ReaderTask(void * arguments);
 /**
  * @brief The Writer Task for the ROS Interface
- * 
+ * This task will write outgoing ROS messages over 
+ * the serial interface. This tasks services the 
+ * ROS_WriterQueue immediately after a messages is 
+ * written to the queue. 
  * @param arguments (not handled)
  */
 void ROS_WriterTask(void * arguments);
