@@ -19,10 +19,16 @@
 #include "Peripherals/usart.h"
 #include "System/OS_Ctrl.h"
 #include "Sensors/imu.h"
+#include "Peripherals/i2c.h"
 
 /* Macros */
 #define IMU_TASK_DELAY_MS 1000 // milliseconds
 #define TEST_BUFFER 50
+/* Testing Defines*/
+
+#define TEMP_TASK
+//#define SAMPLE_CODE
+
 /* Data Structures */
 
 /* Global Variables */
@@ -30,7 +36,7 @@
 /* Private Prototypes */
 
 /* RTOS Tasks */
-void IMU_Task(void * arguments){
+void IMU_Task(LSM6DS3 * sensor){
 
     uint8_t byte_read = 0;
     char msg_str[TEST_BUFFER];
@@ -40,6 +46,7 @@ void IMU_Task(void * arguments){
     memset(rpy_str,0,TEST_BUFFER);
     while(1)
     {
+#ifdef SAMPLE_CODE
         /* Send A Msg to the IMU */
     	snprintf(msg_str, TEST_BUFFER, "\n\rIMU MSG: 0x00,0x01,0x02\n\r");
         ROS_Write((uint8_t*)msg_str, TEST_BUFFER, portMAX_DELAY);
@@ -55,6 +62,28 @@ void IMU_Task(void * arguments){
 
         /* Delay Until Next Loop */
         vTaskDelay(pdMS_TO_TICKS(IMU_TASK_DELAY_MS));    
+#endif
+#ifdef TEMP_TASK
+        /* Request Temp Data from IMU */
+        HAL_StatusTypeDef ret = LSM6DS3_Is_Ready(sensor); //!arguments pointer can be changed to a struct pointer
+        if(ret) {
+
+            ret = LSM6DS3_ReadTemp(sensor);
+            //? Might change the return type for the sensor not sure yet
+        }
+        /* Send A Temp Data to RTOS Queue */
+        if(pdTRUE != xQueueSendToBack(IMU_ReaderQueue, &(sensor->temp_data),portMAX_DELAY)){
+
+            //?Report error
+            continue;
+        }
+
+        //! Not sure about this for outputting, but just for placeholder
+        snprintf(rpy_str, TEST_BUFFER, "\n\rIMU Reply: %f\n\r",sensor->temp_data);
+
+        vTaskDelay(pdMS_TO_TICKS(IMU_TASK_DELAY_MS));  
+        
+#endif
     }
 }
 

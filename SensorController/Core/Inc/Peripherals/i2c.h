@@ -17,7 +17,12 @@
 #include "semphr.h"
 /* Definitions */
 
-#define LSM6DS3_ADDR 1101010b; //7th LSB driven by the SDO/SA0 Pin p.34
+//const uint16_t LSM6DS3_ADDR = 1101010b; //7th LSB driven by the SDO/SA0 Pin p.34
+
+#define LSM6DS3_TEMPL_ADDR = 0x20h;
+#define LSM6DS3_TEMPH_ADDR = 0x20h;
+
+
 
 //Add Sensor Name Here
 typedef enum I2C_SENSORS{
@@ -29,6 +34,7 @@ typedef enum I2C_SENSORS{
 typedef struct {
 	//handle pointer
 	I2C_HandleTypeDef *i2c_handle;
+	const uint16_t LSM6DS3_ADDR = 1101010b;//7th LSB driven by the SDO/SA0 Pin p.34
 
 	//data buffers
 
@@ -55,7 +61,7 @@ HAL_StatusTypeDef LSM6DS3_Init(LSM6DS3 * dev, I2C_HandleTypeDef * i2cHandle);
 /**
  * @brief Function to handle 1-byte read requests to a specific register on board the IMU
  * @param dev struct for handle
- * @param reg address of the registering we want to read from
+ * @param reg address of the register we want to read from
  * @param data pointer to recieve data
  */
 HAL_StatusTypeDef LSM6DS3_readRegister(LSM6DS3 *dev,uint8_t reg, uint8_t * data);
@@ -64,7 +70,7 @@ HAL_StatusTypeDef LSM6DS3_readRegisters(LSM6DS3 *dev,uint8_t reg, uint8_t * data
 /**
  * @brief Function to handle 1-byte write requests to a specific register on board the IMU
  * @param dev struct for handle
- * @param reg address of the registering we want to read from
+ * @param reg internal address of register we weant to we want to read from
  * @param data pointer to write data from
  */
 HAL_StatusTypeDef LSM6DS3_writeRegister(LSM6DS3 *dev,uint8_t reg, uint8_t * data);
