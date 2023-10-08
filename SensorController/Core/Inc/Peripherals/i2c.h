@@ -8,6 +8,7 @@
  * @copyright Copyright (c) 2023
  *
  */
+#pragma once
 #include "main.h"
 #include "FreeRTOS.h"
 
@@ -16,11 +17,12 @@
 #include "queue.h"
 #include "semphr.h"
 /* Definitions */
-
+extern I2C_HandleTypeDef hi2c1;
 //const uint16_t LSM6DS3_ADDR = 1101010b; //7th LSB driven by the SDO/SA0 Pin p.34
 
-#define LSM6DS3_TEMPL_ADDR = 0x20h;
-#define LSM6DS3_TEMPH_ADDR = 0x20h;
+#define LOCKED_ADDR 0x6A
+#define DELAY_COUNT 5000
+#define MAX_I2C_TRIAL_COUNT 10
 
 
 
@@ -28,13 +30,13 @@
 typedef enum I2C_SENSORS{
 	IMU_LSM6DS3,
 
-	SENSOR_TOTAL
-};
+	I2C_SENSOR_TOTAL
+}ACTIVE_SENSORS;
 
 typedef struct {
 	//handle pointer
 	I2C_HandleTypeDef *i2c_handle;
-	const uint16_t LSM6DS3_ADDR = 1101010b;//7th LSB driven by the SDO/SA0 Pin p.34
+	uint16_t LSM6DS3_ADDR;//7th LSB driven by the SDO/SA0 Pin p.34
 
 	//data buffers
 
@@ -51,7 +53,7 @@ HAL_StatusTypeDef IMU_readVal(uint8_t address, uint8_t pinCfg, uint8_t * imudata
 
 //Data processing functions
 
-HAL_StatusTypeDef LSM6DS3_ProcessGyro(LSM6DS3 * dev);
+HAL_StatusTypeDef LSM6DS3_ReadTemp(LSM6DS3 * dev);
 
 HAL_StatusTypeDef LSM6DS3_Init(LSM6DS3 * dev, I2C_HandleTypeDef * i2cHandle);
 

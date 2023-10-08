@@ -34,7 +34,7 @@
 /* Global Variables */
 
 /* Private Prototypes */
-
+//void IMU_Task(LSM6DS3 * sensor);
 /* RTOS Tasks */
 void IMU_Task(LSM6DS3 * sensor){
 
@@ -79,7 +79,7 @@ void IMU_Task(LSM6DS3 * sensor){
         }
 
         //! Not sure about this for outputting, but just for placeholder
-        snprintf(rpy_str, TEST_BUFFER, "\n\rIMU Reply: %f\n\r",sensor->temp_data);
+        //snprintf(rpy_str, TEST_BUFFER, "\n\rIMU Reply: %f\n\r",sensor->temp_data);
 
         vTaskDelay(pdMS_TO_TICKS(IMU_TASK_DELAY_MS));  
         

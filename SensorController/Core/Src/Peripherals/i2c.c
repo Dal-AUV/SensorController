@@ -31,21 +31,21 @@ void I2C_Init(void)
 	MX_I2C1_Init();
 }
 
-
+I2C_HandleTypeDef hi2c1;
 
 //Test reading structure, likely going to discontinue in favour of functions below
-HAL_StatusTypeDef IMU_readVal(uint8_t address, uint8_t pinCfg, uint8_t * imudata) {
+HAL_StatusTypeDef IMU_readVal(uint8_t address, uint8_t pinCfg, uint8_t * imu_data) {
 
 	HAL_StatusTypeDef ret;
 	uint8_t imudata[2];
 
-	ret = HAL_I2C_IsDeviceReady(&hi2c1, (uint16_t)(address<<1), MAX_I2C_TRIAL_COUNT, MAX_I2C_TIMEOUT);
+	ret = HAL_I2C_IsDeviceReady(&hi2c1, (uint16_t)(address<<1), MAX_I2C_TRIAL_COUNT, HAL_MAX_DELAY);
 	if(ret != HAL_OK) return ret;
 
-	ret = HAL_I2C_Master_Transmit_IT(&hi2c1, (uint16_t)(address<<1), &pinCfg, 1, MAX_I2C_TIMEOUT);
+	ret = HAL_I2C_Master_Transmit_IT(&hi2c1, (uint16_t)(address<<1), &pinCfg, 1);
 	if(ret != HAL_OK) return ret;
 
-	for(int i = 0; i<delay_count; i++);
+	for(int i = 0; i<DELAY_COUNT; i++);
 
 	ret = HAL_I2C_Master_Receive_IT(&hi2c1, (uint16_t)(address<<1) | 0x01, imu_data, 1);
 	if(ret != HAL_OK) return ret;
@@ -57,7 +57,7 @@ HAL_StatusTypeDef IMU_readVal(uint8_t address, uint8_t pinCfg, uint8_t * imudata
 
 HAL_StatusTypeDef LSM6DS3_Is_Ready(LSM6DS3 *dev) {
 
-	return HAL_I2C_IsDeviceReady(dev->i2c_handle, dev->LSM6DS3_ADDR, HAL_MAX_TRIAL, HAL_MAX_DELAY);
+	return HAL_I2C_IsDeviceReady(dev->i2c_handle, dev->LSM6DS3_ADDR, 5, HAL_MAX_DELAY);
 }
 
 //Low level HAL Function replacements for use in tasks etc. abstracts some HAL constants out
@@ -90,6 +90,7 @@ HAL_StatusTypeDef LSM6DS3_Init(LSM6DS3 * dev, I2C_HandleTypeDef * i2cHandle) {
 	HAL_StatusTypeDef sensor_ret;
 
 	dev->i2c_handle = i2cHandle;
+	dev->LSM6DS3_ADDR =  LOCKED_ADDR;
 
 
 	//Example initializations of data arrays for output
@@ -118,7 +119,7 @@ HAL_StatusTypeDef LSM6DS3_ReadTemp(LSM6DS3 * dev){
 
 	uint8_t regData[2]; //Temp data comes in two bytes
 
-	HAL_StatusTypeDef status = LSM6DS3_readRegisters(dev, LSM6DS3_TEMPL_ADDR, regData, 2);
+	HAL_StatusTypeDef status = LSM6DS3_readRegisters(dev, dev->LSM6DS3_ADDR, regData, 2);
 
 	if (status != HAL_OK)
 	{
@@ -142,7 +143,7 @@ HAL_StatusTypeDef LSM6DS3_ReadTemp(LSM6DS3 * dev){
 		signed_twobyte_temp = -(~(signed_twobyte_temp)+1); //flip all the bits and add 1
 	}
 	
-	//!unsure if this conversion wil work okay
+	//!unsure if this conversion will work okay
 	//!I feel like there should be something in the documentation for converting the bin --> real value but I haven't seen anythign
 	//!From a different sensor of theirs 1 bit = 0.0625 C
 	//https://github.com/sparkfun/SparkFun_TMP102_Arduino_Library/blob/master/src/SparkFunTMP102.cpp
@@ -171,16 +172,16 @@ void HAL_I2C_MasterTxCpltCallback(I2C_HandleTypeDef * hi2c1) {
 	//Reception from sensor complete do something !
 	//Code copied from USART.C
 
-	BaseType_t xStats = {0};
+	BaseType_t xStatus = {0};
 
 	HAL_GPIO_TogglePin(LD3_GPIO_Port, LD3_Pin);
 
 	    if(hi2c1 == &hi2c1){
 
-	        xStatus = xQueueSendToBackFromISR(ROSReaderQueue,ROSBuf,NULL);
+	       //xStatus = xQueueSendToBackFromISR(ROSReaderQueue,ROSBuf,NULL);
 
 	        //We successfully transmitted to the function now call the receive. (I don't think this is needed with the sensor read function
-	        HAL_I2C_Master_Receive_IT(&hi2c1, (unit16_t)(address<<1) | 0x01, imu_data, 1);
+	        //HAL_I2C_Master_Receive_IT(&hi2c1, (uint16_t)(address<<1) | 0x01, imu_data, 1);
 	    }
 	    if(xStatus == pdPASS){
 	        HAL_GPIO_TogglePin(LD3_GPIO_Port, LD3_Pin);
