@@ -41,6 +41,8 @@ void IMU_Task(LSM6DS3 * sensor){
     uint8_t byte_read = 0;
     char msg_str[TEST_BUFFER];
     char rpy_str[TEST_BUFFER];
+    LSM6DS3_Init(sensor,&hi2c1);
+
 
     memset(msg_str,0,TEST_BUFFER);
     memset(rpy_str,0,TEST_BUFFER);

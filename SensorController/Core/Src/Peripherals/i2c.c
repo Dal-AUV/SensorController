@@ -18,7 +18,7 @@
 #include "queue.h"
 #include "semphr.h"
 
-#define ARDUINO_COPY
+#define TEST_CONVERSION
 
 
 /*Private Prototypes*/
@@ -29,6 +29,7 @@ void MX_I2C1_Init(void);
 void I2C_Init(void)
 {
 	MX_I2C1_Init();
+
 }
 
 I2C_HandleTypeDef hi2c1;
@@ -57,7 +58,7 @@ HAL_StatusTypeDef IMU_readVal(uint8_t address, uint8_t pinCfg, uint8_t * imu_dat
 
 HAL_StatusTypeDef LSM6DS3_Is_Ready(LSM6DS3 *dev) {
 
-	return HAL_I2C_IsDeviceReady(dev->i2c_handle, dev->LSM6DS3_ADDR, 5, HAL_MAX_DELAY);
+	return HAL_I2C_IsDeviceReady(dev->i2c_handle, (dev->LSM6DS3_ADDR << 1), 5, HAL_MAX_DELAY);
 }
 
 //Low level HAL Function replacements for use in tasks etc. abstracts some HAL constants out
@@ -100,15 +101,15 @@ HAL_StatusTypeDef LSM6DS3_Init(LSM6DS3 * dev, I2C_HandleTypeDef * i2cHandle) {
 	
 	dev->temp_data = 0.0f;
 
-	//I need to check isDeviceReady's effectiveness, but i've heard it works fine
 
-	sensor_ret = HAL_I2C_IsDeviceReady(dev->i2c_handle, (dev->LSM6DS3_ADDR << 1), MAX_I2C_TRIAL_COUNT, HAL_MAX_DELAY);
+
+	sensor_ret = HAL_I2C_IsDeviceReady(dev->i2c_handle, (dev->LSM6DS3_ADDR << 1), 2, 2000);
 	if(sensor_ret != HAL_OK) return sensor_ret;
 
 	// TODO add power control, FIFO, etc configs in init function
 
 	//CTRL4_C Register to enable temp as 4th fifo data set?
-
+	return sensor_ret;
 }
 
 //Processing function to take data from the IMU and convert it into readable values
@@ -130,27 +131,7 @@ HAL_StatusTypeDef LSM6DS3_ReadTemp(LSM6DS3 * dev){
 	int16_t signed_twobyte_temp = 0x0000;
 
 
-#ifdef TWOS_TEST
-	//reg[0] is tempL reg[1] is tempH
-	signed_twobyte_temp |= (((int16_t)regData[1] << 8) | (int16_t)regData[0]);
-	
-	//two's complement conversion to decimal
-
-	uint16_t sign_mask = 0x8000;
-
-	if (signed_twobyte_temp & sign_mask != 0) //check if the msb is 1
-	{
-		signed_twobyte_temp = -(~(signed_twobyte_temp)+1); //flip all the bits and add 1
-	}
-	
-	//!unsure if this conversion will work okay
-	//!I feel like there should be something in the documentation for converting the bin --> real value but I haven't seen anythign
-	//!From a different sensor of theirs 1 bit = 0.0625 C
-	//https://github.com/sparkfun/SparkFun_TMP102_Arduino_Library/blob/master/src/SparkFunTMP102.cpp
-
-	dev->temp_data = signed_twobyte_temp*0.0625;
-#endif
-#ifdef ARDUINO_COPY
+#ifdef TEST_CONVERSION
 
 	//source
 	//https://github.com/sparkfun/SparkFun_LSM6DS3_Arduino_Library/blob/master/src/SparkFunLSM6DS3.cpp#L747

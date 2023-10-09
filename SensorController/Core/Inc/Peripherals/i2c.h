@@ -11,6 +11,7 @@
 #pragma once
 #include "main.h"
 #include "FreeRTOS.h"
+#include <string.h>
 
 #include <stdbool.h>
 
@@ -20,11 +21,11 @@
 extern I2C_HandleTypeDef hi2c1;
 //const uint16_t LSM6DS3_ADDR = 1101010b; //7th LSB driven by the SDO/SA0 Pin p.34
 
-#define LOCKED_ADDR 0x6A
+#define LOCKED_ADDR 0b1101010 //7th bit is set to SA0 Pin (GND), so we could use two addresses and dynamically change which one
 #define DELAY_COUNT 5000
 #define MAX_I2C_TRIAL_COUNT 10
 
-
+/* Green Wire = SDA, Yellow Wire = SCL */
 
 //Add Sensor Name Here
 typedef enum I2C_SENSORS{
@@ -76,3 +77,5 @@ HAL_StatusTypeDef LSM6DS3_readRegisters(LSM6DS3 *dev,uint8_t reg, uint8_t * data
  * @param data pointer to write data from
  */
 HAL_StatusTypeDef LSM6DS3_writeRegister(LSM6DS3 *dev,uint8_t reg, uint8_t * data);
+
+HAL_StatusTypeDef LSM6DS3_Is_Ready(LSM6DS3 *dev);
