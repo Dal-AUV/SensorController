@@ -67,19 +67,21 @@ void IMU_Task(LSM6DS3 * sensor){
 #endif
 #ifdef TEMP_TASK
         /* Request Temp Data from IMU */
-        HAL_StatusTypeDef ret = LSM6DS3_Is_Ready(sensor); //!arguments pointer can be changed to a struct pointer
-        if(ret) {
+        //uint8_t buf[2];
+        HAL_StatusTypeDef ret = LSM6DS3_ReadTemp(sensor);
 
-            ret = LSM6DS3_ReadTemp(sensor);
-            //? Might change the return type for the sensor not sure yet
-        }
-        /* Send A Temp Data to RTOS Queue */
-        if(pdTRUE != xQueueSendToBack(IMU_ReaderQueue, &(sensor->temp_data),portMAX_DELAY)){
 
-            //?Report error
-            continue;
-        }
-
+//        if(ret) {
+//
+//            ret = LSM6DS3_ReadTemp(sensor);
+//            //? Might change the return type for the sensor not sure yet
+//        }
+//        /* Send A Temp Data to RTOS Queue */
+//        if(pdTRUE != xQueueSendToBack(IMU_ReaderQueue, &(sensor->temp_data),portMAX_DELAY)){
+//
+//            //?Report error
+//            continue;
+//        }
         //! Not sure about this for outputting, but just for placeholder
         //snprintf(rpy_str, TEST_BUFFER, "\n\rIMU Reply: %f\n\r",sensor->temp_data);
 

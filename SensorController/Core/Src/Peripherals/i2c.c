@@ -58,7 +58,7 @@ HAL_StatusTypeDef IMU_readVal(uint8_t address, uint8_t pinCfg, uint8_t * imu_dat
 
 HAL_StatusTypeDef LSM6DS3_Is_Ready(LSM6DS3 *dev) {
 
-	return HAL_I2C_IsDeviceReady(dev->i2c_handle, (dev->LSM6DS3_ADDR << 1), 5, HAL_MAX_DELAY);
+	return HAL_I2C_IsDeviceReady(dev->i2c_handle, (dev->LSM6DS3_ADDR << 1), 10, HAL_MAX_DELAY);
 }
 
 //Low level HAL Function replacements for use in tasks etc. abstracts some HAL constants out
@@ -72,7 +72,7 @@ HAL_StatusTypeDef LSM6DS3_Is_Ready(LSM6DS3 *dev) {
 HAL_StatusTypeDef LSM6DS3_readRegisters(LSM6DS3 *dev,uint8_t reg, uint8_t * data, uint8_t length){
 	//Depending on sensor may want to update to I2C_MEMADD_SIZE_16BIT
 	
-	return HAL_I2C_Mem_Read_IT(dev->i2c_handle, (dev->LSM6DS3_ADDR << 1), reg, I2C_MEMADD_SIZE_8BIT, data, length);
+	return HAL_I2C_Mem_Read(dev->i2c_handle,(dev->LSM6DS3_ADDR << 1), reg, I2C_MEMADD_SIZE_8BIT, data, length, HAL_MAX_DELAY);
 }
 
 /**
@@ -88,7 +88,7 @@ HAL_StatusTypeDef LSM6DS3_writeRegister(LSM6DS3 *dev,uint8_t reg, uint8_t * data
 //Init function for sensor, should include sensor ready checks and also configuration settings
 HAL_StatusTypeDef LSM6DS3_Init(LSM6DS3 * dev, I2C_HandleTypeDef * i2cHandle) {
 
-	HAL_StatusTypeDef sensor_ret;
+	//HAL_StatusTypeDef sensor_ret;
 
 	dev->i2c_handle = i2cHandle;
 	dev->LSM6DS3_ADDR =  LOCKED_ADDR;
@@ -102,7 +102,7 @@ HAL_StatusTypeDef LSM6DS3_Init(LSM6DS3 * dev, I2C_HandleTypeDef * i2cHandle) {
 	dev->temp_data = 0.0f;
 
 
-
+#ifdef ret
 	sensor_ret = HAL_I2C_IsDeviceReady(dev->i2c_handle, (dev->LSM6DS3_ADDR << 1), 2, 2000);
 	if(sensor_ret != HAL_OK) return sensor_ret;
 
@@ -110,6 +110,7 @@ HAL_StatusTypeDef LSM6DS3_Init(LSM6DS3 * dev, I2C_HandleTypeDef * i2cHandle) {
 
 	//CTRL4_C Register to enable temp as 4th fifo data set?
 	return sensor_ret;
+#endif
 }
 
 //Processing function to take data from the IMU and convert it into readable values
@@ -120,7 +121,7 @@ HAL_StatusTypeDef LSM6DS3_ReadTemp(LSM6DS3 * dev){
 
 	uint8_t regData[2]; //Temp data comes in two bytes
 
-	HAL_StatusTypeDef status = LSM6DS3_readRegisters(dev, dev->LSM6DS3_ADDR, regData, 2);
+	HAL_StatusTypeDef status = LSM6DS3_readRegisters(dev, 0x20, regData, 2);
 
 	if (status != HAL_OK)
 	{

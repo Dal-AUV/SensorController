@@ -21,7 +21,8 @@
 extern I2C_HandleTypeDef hi2c1;
 //const uint16_t LSM6DS3_ADDR = 1101010b; //7th LSB driven by the SDO/SA0 Pin p.34
 
-#define LOCKED_ADDR 0b1101010 //7th bit is set to SA0 Pin (GND), so we could use two addresses and dynamically change which one
+#define LOCKED_ADDR 0b1101011 //7th bit is set to SA0 Pin (GND), so we could use two addresses and dynamically change which one
+
 #define DELAY_COUNT 5000
 #define MAX_I2C_TRIAL_COUNT 10
 
