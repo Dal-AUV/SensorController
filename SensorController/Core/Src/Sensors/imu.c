@@ -67,15 +67,20 @@ void IMU_Task(LSM6DS3 * sensor){
 #endif
 #ifdef TEMP_TASK
         /* Request Temp Data from IMU */
-        //uint8_t buf[2];
-        HAL_StatusTypeDef ret = LSM6DS3_ReadTemp(sensor);
+        uint8_t buf[2];
+        uint8_t dataToSend[1];
+        dataToSend[0] = 0xFF;
+        HAL_StatusTypeDef ret;
 
 
-//        if(ret) {
-//
-//            ret = LSM6DS3_ReadTemp(sensor);
-//            //? Might change the return type for the sensor not sure yet
-//        }
+        ret = LSM6DS3_Reg_Init(sensor, ACCEL_ONLY_ENABLE);
+        ret = LSM6DS3_readRegisters(sensor, WHO_AM_I, buf, 2);
+        //HAL_StatusTypeDef ret = LSM6DS3_ReadTemp(sensor);
+
+
+        if(ret == HAL_OK) {
+        	LSM6DS3_ReadAccel(sensor);
+        }
 //        /* Send A Temp Data to RTOS Queue */
 //        if(pdTRUE != xQueueSendToBack(IMU_ReaderQueue, &(sensor->temp_data),portMAX_DELAY)){
 //
