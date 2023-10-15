@@ -18,7 +18,7 @@
 #include "semphr.h"
 /* Macros */
 // Task Config
-#define IMU_PRI         tskIDLE_PRIORITY + 1       
+#define IMU_PRI         tskIDLE_PRIORITY + 2
 #define PRESSURE_PRI    tskIDLE_PRIORITY + 1
 
 #define IMU_STACK_SIZE          configMINIMAL_STACK_SIZE + 100
