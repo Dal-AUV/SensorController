@@ -59,7 +59,6 @@ extern I2C_HandleTypeDef hi2c1;
 
 /* Green Wire = SDA, Yellow Wire = SCL */
 
-//Add Sensor Name Here
 typedef enum I2C_SENSORS{
 	IMU_LSM6DS3,
 
@@ -73,22 +72,32 @@ typedef struct {
 
 	//data buffers
 
-	uint16_t gyro_data[3]; //x, y ,z
-	uint16_t accel_data[3];
-	uint16_t temp_data;
+	float gyro_data[3]; //x, y ,z
+	float accel_data[3];
+	float temp_data;
 
 }LSM6DS3;
 
 /* Public Functions */
 void I2C_Init(void);
 
-//Data processing functions
+/* ----- Data processing functions ----- */
 
+/**
+ * @brief Reads acceleration registers and stores register data in struct
+ * @param pointer to sensor struct
+ */
+HAL_StatusTypeDef LSM6DS3_ReadAccel(LSM6DS3 *dev);
+
+/**
+ * @brief Reads the temperature registers and stores in struct
+ * @param dev pointer to sensor struct
+ */
 HAL_StatusTypeDef LSM6DS3_ReadTemp(LSM6DS3 * dev);
 
 HAL_StatusTypeDef LSM6DS3_Init(LSM6DS3 * dev, I2C_HandleTypeDef * i2cHandle);
 
-//Low level functions
+/* ------ Low level functions ------ */
 
 /**
  * @brief Function to handle n-byte read requests to a specific register on board the IMU
@@ -114,8 +123,7 @@ HAL_StatusTypeDef LSM6DS3_Is_Ready(LSM6DS3 *dev);
 
 /**
  * @brief Initiate Registers to configure collection of Acceleration and Gyro Data
- * @param pointer to sensor struct
+ * @param dev pointer to sensor struct
+ * @param Type register to init
  */
 HAL_StatusTypeDef LSM6DS3_Reg_Init(LSM6DS3 *dev, uint8_t Type);
-
-HAL_StatusTypeDef LSM6DS3_ReadAccel(LSM6DS3 *dev);

@@ -39,29 +39,17 @@ HAL_StatusTypeDef LSM6DS3_Is_Ready(LSM6DS3 *dev) {
 	return HAL_I2C_IsDeviceReady(dev->i2c_handle, (dev->LSM6DS3_ADDR << 1), 10, HAL_MAX_DELAY);
 }
 
-//Low level HAL Function replacements for use in tasks etc. abstracts some HAL constants out
-/**
- * @brief Function to handle read requests to a specific register on board the IMU
- * @param dev struct for handle
- * @param reg address of the register we want to read from
- * @param data pointer to recieve data
- * @param length 
- */
+/* Low level HAL Function replacements for use in tasks etc. abstracts some HAL constants out */
+
 HAL_StatusTypeDef LSM6DS3_readRegisters(LSM6DS3 *dev,uint8_t reg, uint8_t * data, uint8_t length){
 	return HAL_I2C_Mem_Read(dev->i2c_handle,(dev->LSM6DS3_ADDR << 1), reg, I2C_MEMADD_SIZE_8BIT, data, length, HAL_MAX_DELAY);
 }
 
-/**
- * @brief Function to handle 1-byte write requests to a specific register on board the IMU
- * @param dev struct for handle
- * @param reg internal address of register we weant to we want to read from
- * @param data pointer to write data from
- */
+
 HAL_StatusTypeDef LSM6DS3_writeRegister(LSM6DS3 *dev,uint8_t reg, uint8_t * data){
 	return	HAL_I2C_Mem_Write(dev->i2c_handle, (dev->LSM6DS3_ADDR << 1), reg, I2C_MEMADD_SIZE_8BIT, data, 1,HAL_MAX_DELAY);
 }
 
-//Init function for sensor, should include sensor ready checks and also configuration settings
 HAL_StatusTypeDef LSM6DS3_Init(LSM6DS3 * dev, I2C_HandleTypeDef * i2cHandle) {
 
 	HAL_StatusTypeDef sensor_ret;
@@ -70,8 +58,6 @@ HAL_StatusTypeDef LSM6DS3_Init(LSM6DS3 * dev, I2C_HandleTypeDef * i2cHandle) {
 	sensor_ret = HAL_I2C_IsDeviceReady(dev->i2c_handle, (dev->LSM6DS3_ADDR << 1), 2, HAL_MAX_DELAY);
 	if(sensor_ret != HAL_OK) return sensor_ret;
 
-
-
 	//Example initializations of data arrays for output
 	dev->accel_data[0] = 0.0f;
 	dev->accel_data[1] = 0.0f;
@@ -79,13 +65,11 @@ HAL_StatusTypeDef LSM6DS3_Init(LSM6DS3 * dev, I2C_HandleTypeDef * i2cHandle) {
 	
 	dev->temp_data = 0.0f;
 
-	//(void)LSM6DS3_Reg_Init(dev);
-
 	return sensor_ret;
 }
 
-//Processing function to take data from the IMU and convert it into readable values
-//Need to do some bit manip and then conversion math which I will need help with
+/* Processing Functions */
+
 HAL_StatusTypeDef LSM6DS3_ReadTemp(LSM6DS3 * dev){
 
 	//Data is 2 bytes signed two's complement
@@ -144,6 +128,7 @@ HAL_StatusTypeDef LSM6DS3_Reg_Init(LSM6DS3 *dev, uint8_t Type) {
 }
 
 HAL_StatusTypeDef LSM6DS3_ReadAccel(LSM6DS3 *dev) {
+	/* Variable Declarations */
 	uint8_t regData[6]; //H & L Bytes for XYZ
 
 	HAL_StatusTypeDef ret;
@@ -152,16 +137,19 @@ HAL_StatusTypeDef LSM6DS3_ReadAccel(LSM6DS3 *dev) {
 	int8_t Ysign = 1;
 	int8_t Xsign = 1;
 
-	ret = LSM6DS3_readRegisters(dev, OUTX_L_XL, regData, 6); // Registers are all adjacent RegData[0] = XL, RegData[6] = ZH;
 	uint16_t mergeX = 0;
 	uint16_t mergeY = 0;
 	uint16_t mergeZ = 0;
+
+	uint16_t mask = 0x8000;
+
+	ret = LSM6DS3_readRegisters(dev, OUTX_L_XL, regData, 6); // Registers are all adjacent RegData[0] = XL, RegData[6] = ZH;
+
 	mergeX |= ((uint16_t)regData[0] | (uint16_t)regData[1]<<8);
 	mergeY |= ((uint16_t)regData[2] | (uint16_t)regData[3]<<8);
 	mergeZ |= ((uint16_t)regData[4] | (uint16_t)regData[5]<<8);
 
-	uint16_t mask = 0x8000;
-
+	/* Two's complement conversions for X, Y, Z */
 	if((mergeY & mask) == 0) {
 		Ysign = 1;
 	}
@@ -184,9 +172,9 @@ HAL_StatusTypeDef LSM6DS3_ReadAccel(LSM6DS3 *dev) {
 		Zsign = -1;
 	}
 
-	//float zOut = (float)sign * mergeZ * 4.0/32768.0;
+	//float zOut = (float)sign * mergeZ * 4.0/32768.0 <-- Alternate Conversion;
 	/* At +-2g conversion = 0.061, since accel is set to +-4g double to 0.122 */
-	float xOut_Mg = (float)1 * mergeX * 0.122;
+	float xOut_Mg = (float)Xsign * mergeX * 0.122;
 	float yOut_Mg = (float)Ysign * mergeY * 0.122;
 	float zOut_Mg = (float)Zsign * mergeZ * 0.122;
 
@@ -195,6 +183,10 @@ HAL_StatusTypeDef LSM6DS3_ReadAccel(LSM6DS3 *dev) {
 	float yOut_MS = yOut_Mg * 0.00980665;
 	float zOut_MS = zOut_Mg * 0.00980665;
 
+	/* Set struct data to calculated values */
+	dev->accel_data[0] = xOut_MS;
+	dev->accel_data[1] = yOut_MS;
+	dev->accel_data[2] = zOut_MS;
 
 	return ret;
 }
@@ -224,7 +216,7 @@ void HAL_I2C_MasterTxCpltCallback(I2C_HandleTypeDef * hi2c1) {
 	    return;
 }
 
-//Default i2c1 port init function
+/*Default i2c1 port init function */
 
 void MX_I2C1_Init(void)
 {
