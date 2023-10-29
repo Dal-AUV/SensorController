@@ -2,7 +2,7 @@
  * @file RosHandler.h
  * @author Matthew Cockburn
  * @brief Header file for the ROS Interface
- * @version 0.1
+ * @version 1
  * @date 2023-08-06
  * 
  * @copyright Copyright (c) 2023

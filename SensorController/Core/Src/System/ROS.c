@@ -1,14 +1,15 @@
 /**
  * @file ROS.c
  * @author Matthew Cockburn 
- * @brief 
- * @version 0.1
+ * @brief Source file for the interface with the DAT ROS communucation
+ * interface
+ * @version 1
  * @date 2023-06-10
  * 
  * @copyright Copyright (c) 2023
  * 
  */
-
+/* Headers */
 #include <assert.h>
 #include <string.h>
 #include <stdbool.h>

@@ -54,7 +54,10 @@ void UART_Init(void)
 
 HAL_StatusTypeDef ROS_Write(uint8_t * buffer, uint16_t size, uint32_t timeout)
 {
-	return UART_DMA_Write(&huart3, buffer,size,timeout);
+	if(pdTRUE == xSemaphoreTake(ROS_WriterSem,pdMS_TO_TICKS(timeout))){
+		return UART_DMA_Write(&huart3, buffer,size,timeout);
+	}
+	return HAL_TIMEOUT;
 }
 
 /*  USART CALLBACKS */
@@ -79,7 +82,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart){
 
 	if(huart == &huart3){
-		xSemaphoreGiveFromISR(ROSReaderSemphr,NULL);
+		xSemaphoreGiveFromISR(ROS_WriterSem,NULL);
 	}
 
 	return;
@@ -163,10 +166,6 @@ HAL_StatusTypeDef UART_DMA_Write(UART_HandleTypeDef *huart, uint8_t * buf, uint1
 	assert(buf);
 
 	if(size == 0) return HAL_OK;
-
-	if(!xSemaphoreTake(ROSReaderSemphr ,pdMS_TO_TICKS(timeout))){
-		return HAL_TIMEOUT;
-	}
 
 	return HAL_UART_Transmit_DMA(huart, buf, size);
 }
