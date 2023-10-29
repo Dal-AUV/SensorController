@@ -16,7 +16,7 @@
 #define FW_MAJOR_VERSION 1
 #define FW_MINIOR_VERSION 0
 
-#define TEST_IMU
-#define TEST_PRESSURE
+//#define TEST_IMU
+//#define TEST_PRESSURE
 
 #endif

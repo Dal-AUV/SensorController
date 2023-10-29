@@ -12,7 +12,6 @@
 /* Headers */
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include "FreeRTOS.h"
 #include "task.h"
 #include "queue.h"
@@ -20,10 +19,12 @@
 #include "Peripherals/usart.h"
 #include "System/OS_Ctrl.h"
 #include "Sensors/imu.h"
+#include "Peripherals/i2c.h"
 
 /* Macros */
-#define IMU_TASK_DELAY_MS 100 // milliseconds
-#define TEST_BUFFER 50
+#define IMU_TASK_DELAY_MS 1000 // milliseconds
+#define TEST_BUFFER 75
+
 /* Data Structures */
 
 /* Global Variables */
@@ -31,31 +32,30 @@
 /* Private Prototypes */
 
 /* RTOS Tasks */
-void IMU_Task(void * arguments){
+void IMU_Task(LSM6DS3 * sensor){
 
-    uint8_t byte_read = 0;
-    char msg_str[TEST_BUFFER];
     char rpy_str[TEST_BUFFER];
+    LSM6DS3_Init(sensor,&hi2c1);
 
-    memset(msg_str,0,TEST_BUFFER);
     memset(rpy_str,0,TEST_BUFFER);
     while(1)
     {
-        /* Send A Msg to the IMU */
-    	snprintf(msg_str, TEST_BUFFER, "\n\rIMU MSG: 0x00,0x01,0x02\n\r");
-        ROS_Write((uint8_t*)msg_str, TEST_BUFFER, portMAX_DELAY);
+        /* Request Temp Data from IMU */
+        uint8_t buf[1];
 
-        /* Wait for data from the IMU */
-        if(pdFAIL == xQueueReceive(IMU_ReaderQueue,&byte_read,portMAX_DELAY)){
-            continue;
+        HAL_StatusTypeDef ret;
+
+        ret = LSM6DS3_Reg_Init(sensor, ACCEL_ONLY_ENABLE);
+        ret = LSM6DS3_readRegisters(sensor, WHO_AM_I, buf, 1);
+
+        if(ret == HAL_OK) {
+        	LSM6DS3_ReadAccel(sensor);
+        	snprintf(rpy_str, TEST_BUFFER, "\n\rX Data: %2.3fm/s^2\n\r\n\rY Data: %2.3fm/s^2\n\r\n\rZ Data: %2.3fm/s^2\n\r",sensor->accel_data[0],sensor->accel_data[1],sensor->accel_data[2]);
+        	ROS_Write(rpy_str, TEST_BUFFER, portMAX_DELAY);
+
         }
-
-        /* Process the byte read in */
-        snprintf(rpy_str, TEST_BUFFER, "\n\rIMU Reply: %X\n\r",byte_read);
-        ROS_Write((uint8_t*)rpy_str, TEST_BUFFER, portMAX_DELAY);
-
-        /* Delay Until Next Loop */
-        vTaskDelay(pdMS_TO_TICKS(IMU_TASK_DELAY_MS));    
+        
+        vTaskDelay(pdMS_TO_TICKS(IMU_TASK_DELAY_MS));
     }
 }
 

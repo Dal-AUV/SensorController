@@ -1,6 +1,6 @@
 /**
  * @file usart.c
- * @author Matthew Cockburn & Wyatt Davion
+ * @author Matthew Cockburn & Wyatt Shaw
  * @brief Source file for the USART hardware interfaces, contains ISR 
  * implementation, Receive and Transmit functions
  * @version 0.1

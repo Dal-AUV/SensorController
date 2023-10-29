@@ -20,7 +20,7 @@
 // Task Config
 #define ROS_WRITER_PRI  tskIDLE_PRIORITY + 4
 #define ROS_READER_PRI  tskIDLE_PRIORITY + 4
-#define IMU_PRI         tskIDLE_PRIORITY + 1       
+#define IMU_PRI         tskIDLE_PRIORITY + 2       
 #define PRESSURE_PRI    tskIDLE_PRIORITY + 1
 
 #define ROS_WRITER_STACK_SIZE  	configMINIMAL_STACK_SIZE

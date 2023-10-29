@@ -12,7 +12,7 @@
 #define _INC_IMU_H_
 
 /* Headers */
-
+#include "Peripherals/i2c.h"
 /* Macros */
 
 /* Data Structures */
@@ -25,7 +25,7 @@
  * 
  * @param arguments none
  */
-void IMU_Task(void * arguments);
+void IMU_Task(LSM6DS3 * sensor);
 /**
  * @brief Test Task for the IMU Sensor
  * 

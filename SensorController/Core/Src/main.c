@@ -28,6 +28,7 @@
 #include "System/OS_Ctrl.h"
 #include "Peripherals/usart.h"
 #include "Peripherals/dma.h"
+#include "Peripherals/i2c.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -66,7 +67,7 @@ ETH_TxPacketConfig TxConfig;
 
 ETH_HandleTypeDef heth;
 
-I2C_HandleTypeDef hi2c1;
+extern I2C_HandleTypeDef hi2c1;
 
 osThreadId defaultTaskHandle;
 /* USER CODE BEGIN PV */
@@ -120,6 +121,7 @@ int main(void)
 
   /* USER CODE BEGIN 2 */
   UART_Init();
+  I2C_Init();
   OS_SemaphoreInit();
   OS_MutexesInit();
   OS_QueuesInit();
