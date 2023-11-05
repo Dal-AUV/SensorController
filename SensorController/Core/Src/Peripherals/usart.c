@@ -1,6 +1,6 @@
 /**
  * @file usart.c
- * @author Matthew Cockburn & Wyatt Davion
+ * @author Matthew Cockburn & Wyatt Shaw
  * @brief Source file for the USART hardware interfaces, contains ISR 
  * implementation, Receive and Transmit functions
  * @version 0.1
@@ -53,13 +53,10 @@ void UART_Init(void)
 
 HAL_StatusTypeDef ROS_Write(uint8_t * buffer, uint16_t size, uint32_t timeout)
 {
-	if(size == 0) return HAL_OK;
-
-	if(!xSemaphoreTake(ROSReaderSemphr ,pdMS_TO_TICKS(timeout))){
-		return HAL_TIMEOUT;
+	if(pdTRUE == xSemaphoreTake(ROS_WriterSem,pdMS_TO_TICKS(timeout))){
+		return UART_DMA_Write(&huart3, buffer, size);
 	}
-
-	return UART_DMA_Write(&huart3, buffer, size);
+	return HAL_TIMEOUT;
 }
 
 /*  USART CALLBACKS */
@@ -84,7 +81,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart){
 
 	if(huart == &huart3){
-		xSemaphoreGiveFromISR(ROSReaderSemphr,NULL);
+		xSemaphoreGiveFromISR(ROS_WriterSem,NULL);
 	}
 
 	return;
