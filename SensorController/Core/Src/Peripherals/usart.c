@@ -42,8 +42,7 @@ uint8_t ROSBuf[MAX_USART_BUF_SIZE];
 /* Private Prototypes*/
 void MX_USART3_UART_Init(void);
 void MX_USART2_UART_Init(void);
-HAL_StatusTypeDef UART_DMA_Write(UART_HandleTypeDef *huart, uint8_t * buf, uint16_t size,
-		uint32_t timeout);
+HAL_StatusTypeDef UART_DMA_Write(UART_HandleTypeDef *huart, uint8_t * buf, uint16_t size);
 /* Exported Functions */
 
 void UART_Init(void)
@@ -54,7 +53,13 @@ void UART_Init(void)
 
 HAL_StatusTypeDef ROS_Write(uint8_t * buffer, uint16_t size, uint32_t timeout)
 {
-	return UART_DMA_Write(&huart3, buffer,size,timeout);
+	if(size == 0) return HAL_OK;
+
+	if(!xSemaphoreTake(ROSReaderSemphr ,pdMS_TO_TICKS(timeout))){
+		return HAL_TIMEOUT;
+	}
+
+	return UART_DMA_Write(&huart3, buffer, size);
 }
 
 /*  USART CALLBACKS */
@@ -84,7 +89,7 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart){
 
 	return;
 }
-
+// TODO [M.C] Add Error Callback ISR Servicing
 /**
   * @brief USART2 Initialization Function
   * @param None
@@ -155,18 +160,8 @@ void MX_USART3_UART_Init(void)
 
 }
 
-HAL_StatusTypeDef UART_DMA_Write(UART_HandleTypeDef *huart, uint8_t * buf, uint16_t size,
-		uint32_t timeout)
+HAL_StatusTypeDef UART_DMA_Write(UART_HandleTypeDef *huart, uint8_t * buf, uint16_t size)
 {
-
-	assert(huart);
-	assert(buf);
-
-	if(size == 0) return HAL_OK;
-
-	if(!xSemaphoreTake(ROSReaderSemphr ,pdMS_TO_TICKS(timeout))){
-		return HAL_TIMEOUT;
-	}
 
 	return HAL_UART_Transmit_DMA(huart, buf, size);
 }

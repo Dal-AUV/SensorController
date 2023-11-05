@@ -66,7 +66,7 @@ void ROS_ReaderTask(void * arguments)
     while(1){
         
         /* Grab Messages From the Serial Interface */
-        if(pdFAIL == xQueueReceive(ROS_ReaderQueue,&byte,pdMS_TO_TICKS(ROS_TIME_OUT_MS))){
+        if(pdFAIL == xQueueReceive(ROS_ReaderQueue,&byte,pdMS_TO_TICKS(ROS_DECODER_SLEEP_MS))){
             ROS_DecoderReset();
         }
         switch(ROS.decoder.state)
@@ -106,7 +106,7 @@ void ROS_ReaderTask(void * arguments)
         }
         /* If no messages are in the queue than sleep*/
         if((UBaseType_t)0 == uxQueueMessagesWaiting(ROS_ReaderQueue)){
-            vTaskDelay(pdMS_TO_TICKS(ROS_TIME_OUT_MS));
+            vTaskDelay(pdMS_TO_TICKS(ROS_DECODER_SLEEP_MS));
         }
     }
 }

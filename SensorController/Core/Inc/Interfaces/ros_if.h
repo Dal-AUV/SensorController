@@ -38,6 +38,7 @@ typedef enum DAT_Opcode_e
 typedef struct DAT_StatusPkt_s
 {
     uint8_t op;
+    uint8_t fw_version[3];
     uint8_t battery;
     uint8_t pressure;
     uint8_t temperature;
