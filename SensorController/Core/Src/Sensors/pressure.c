@@ -12,6 +12,7 @@
 /* Headers */
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "FreeRTOS.h"
 #include "task.h"
 #include "queue.h"
@@ -20,7 +21,7 @@
 #include "System/ROS.h"
 #include "Sensors/pressure.h"
 /* Macros */
-#define PRESSURE_TASK_DELAY_MS 5000 // milliseconds
+#define PRESSURE_TASK_DELAY_MS 200 // milliseconds
 #define TEST_BUFFER 50
 /* Data Structures */
 
@@ -38,7 +39,7 @@ void PRESSURE_Task(void * arguments){
     memset(rpy_str,0,TEST_BUFFER);
     while(1)
     {
-        /* Send A Msg to the IMU */
+        /* Send A Msg to the Pressure Sensor */
     	snprintf(msg_str, TEST_BUFFER, "\n\rPRESSURE MSG: 0x00,0x01,0x02\n\r");
         ROS_Write((uint8_t*)msg_str, TEST_BUFFER, portMAX_DELAY);
 
