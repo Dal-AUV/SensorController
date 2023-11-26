@@ -21,7 +21,7 @@
 extern I2C_HandleTypeDef hi2c1;
 //const uint16_t LSM6DS3_ADDR = 1101010b; //7th LSB driven by the SDO/SA0 Pin p.34
 
-#define LOCKED_ADDR 0b1101011 //7th bit is set to SA0 Pin (GND), so we could use two addresses and dynamically change which one
+#define LSM6DS3_ADDR 0b1101011 //7th bit is set to SA0 Pin (GND), so we could use two addresses and dynamically change which one
 
 #define DELAY_COUNT 5000
 #define MAX_I2C_TRIAL_COUNT 10
@@ -67,16 +67,18 @@ typedef enum I2C_SENSORS{
 
 typedef struct {
 	//handle pointer
-	I2C_HandleTypeDef *i2c_handle;
-	uint16_t LSM6DS3_ADDR;//7th LSB driven by the SDO/SA0 Pin p.34
+	I2C_HandleTypeDef *I2C_HANDLE;
+	uint8_t SENSOR_ADDR;//8 bit i2c address
 
 	//data buffers
-
+	//TODO remove these and rename register
+#ifdef generalize
 	float gyro_data[3]; //x, y ,z
 	float accel_data[3];
 	float temp_data;
+#endif
 
-}LSM6DS3;
+}DAT_SENSOR;
 
 /* Public Functions */
 void I2C_Init(void);
@@ -85,17 +87,18 @@ void I2C_Init(void);
 
 /**
  * @brief Reads acceleration registers and stores register data in struct
- * @param pointer to sensor struct
+ * @param dev pointer to sensor struct
+ * @param accelData float buffer to hold acceleration data output
  */
-HAL_StatusTypeDef LSM6DS3_ReadAccel(LSM6DS3 *dev);
+HAL_StatusTypeDef LSM6DS3_ReadAccel(DAT_SENSOR *dev, float accelData[3]);
 
 /**
  * @brief Reads the temperature registers and stores in struct
  * @param dev pointer to sensor struct
  */
-HAL_StatusTypeDef LSM6DS3_ReadTemp(LSM6DS3 * dev);
+HAL_StatusTypeDef LSM6DS3_ReadTemp(DAT_SENSOR * dev);
 
-HAL_StatusTypeDef LSM6DS3_Init(LSM6DS3 * dev, I2C_HandleTypeDef * i2cHandle);
+HAL_StatusTypeDef LSM6DS3_Init(DAT_SENSOR * dev, I2C_HandleTypeDef * i2cHandle);
 
 /* ------ Low level functions ------ */
 
@@ -107,23 +110,23 @@ HAL_StatusTypeDef LSM6DS3_Init(LSM6DS3 * dev, I2C_HandleTypeDef * i2cHandle);
  * @param number of bytes to be read
  * @return HAL_OK if no errors
  */
-HAL_StatusTypeDef LSM6DS3_readRegisters(LSM6DS3 *dev,uint8_t reg, uint8_t * data, uint8_t length);
+HAL_StatusTypeDef DAT_ReadRegisters(DAT_SENSOR *dev,uint8_t reg, uint8_t * data, uint8_t length);
 /**
  * @brief Function to handle 1-byte write requests to a specific register on board the IMU
  * @param dev struct for handle
  * @param reg internal address of register we weant to we want to read from
  * @param data pointer to write data from
  */
-HAL_StatusTypeDef LSM6DS3_writeRegister(LSM6DS3 *dev,uint8_t reg, uint8_t * data);
+HAL_StatusTypeDef DAT_WriteRegisters(DAT_SENSOR *dev,uint8_t reg, uint8_t * data);
 
 /**
  * @brief check to see if the sensor will return an ACK signal
  */
-HAL_StatusTypeDef LSM6DS3_Is_Ready(LSM6DS3 *dev);
+HAL_StatusTypeDef DAT_SensorIsReady(DAT_SENSOR *dev);
 
 /**
  * @brief Initiate Registers to configure collection of Acceleration and Gyro Data
  * @param dev pointer to sensor struct
  * @param Type register to init
  */
-HAL_StatusTypeDef LSM6DS3_Reg_Init(LSM6DS3 *dev, uint8_t Type);
+HAL_StatusTypeDef LSM6DS3_Reg_Init(DAT_SENSOR *dev, uint8_t Type);

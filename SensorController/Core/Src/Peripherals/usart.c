@@ -81,7 +81,6 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart){
 	if(huart == &huart3){
 		xSemaphoreGiveFromISR(ROSReaderSemphr,NULL);
 	}
-
 	return;
 }
 

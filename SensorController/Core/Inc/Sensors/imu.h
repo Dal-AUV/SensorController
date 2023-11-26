@@ -25,7 +25,7 @@
  * 
  * @param arguments none
  */
-void IMU_Task(LSM6DS3 * sensor);
+void IMU_Task(DAT_SENSOR * sensor);
 /**
  * @brief Test Task for the IMU Sensor
  * 
