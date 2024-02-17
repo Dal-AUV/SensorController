@@ -40,15 +40,13 @@ HAL_StatusTypeDef DAT_SensorIsReady(DAT_SENSOR *dev) {
 }
 
 /* Low level HAL Function replacements for use in tasks etc. abstracts some HAL constants out */
+// TODO just use sempaphore stuff lol
 
 HAL_StatusTypeDef DAT_ReadRegisters(DAT_SENSOR *dev,uint8_t reg, uint8_t * data, uint8_t length){
-
 	return HAL_I2C_Mem_Read(dev->I2C_HANDLE,(dev->SENSOR_ADDR << 1), reg, I2C_MEMADD_SIZE_8BIT, data, length, HAL_MAX_DELAY);
 }
 
-
 HAL_StatusTypeDef DAT_WriteRegister(DAT_SENSOR *dev,uint8_t reg, uint8_t * data, uint8_t length){
-
 	return	HAL_I2C_Mem_Write(dev->I2C_HANDLE, (dev->SENSOR_ADDR << 1), reg, I2C_MEMADD_SIZE_8BIT, data, length, HAL_MAX_DELAY);
 }
 
@@ -79,9 +77,8 @@ HAL_StatusTypeDef LSM6DS3_Reg_Init(DAT_SENSOR *dev, uint8_t Type) {
 	HAL_StatusTypeDef status;
 
 	if(Type == ACCEL_ONLY_ENABLE) {
-		uint8_t *PregConfig;
+
 		uint8_t regConfig = 0x4A;
-		PregConfig = &regConfig;
 		/* Configures the Accelerometer control register
 		 * Configuration: 0b01001010
 		 * Freq: 104Hz < -- Ouput Data Rate Register = 0100

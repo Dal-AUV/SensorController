@@ -21,6 +21,7 @@
 #include "Sensors/imu.h"
 #include "Sensors/pressure.h"
 #include "Peripherals/usart.h"
+#include "Peripherals/watchdog.h"
 
 /* Global Variables */
 QueueHandle_t     ROSReaderQueue;
@@ -31,9 +32,10 @@ SemaphoreHandle_t ROSReaderSemphr;
 
 
 #define TEST_IMU
+#define HEARTBEAT
 /* Private Prototypes */
 static void OS_HeartbeatTask(void);
-
+static void OS_WatchDogResetTask(void);
 /* Public Functions */
 void OS_TasksInit(void){
     /* Added task to Kernel List */
@@ -57,10 +59,16 @@ void OS_TasksInit(void){
         return;
 	}
     #endif
+	#ifdef HEARTBEAT
     if(pdPASS != xTaskCreate((TaskFunction_t)OS_HeartbeatTask,"OS Heartbeat",
             configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY,NULL)){
         return;
     }
+	#endif
+    if(pdPASS != xTaskCreate((TaskFunction_t)OS_WatchDogResetTask,"OS Watchdog Reset",
+                configMINIMAL_STACK_SIZE, NULL, WATCHDOG_PRI,NULL)){
+            return;
+        }
     return;
 }
 
@@ -84,11 +92,22 @@ void OS_MutexesInit(void){
 /* End of Public Functions */
 
 /* Private Functions */
+#ifdef HEARTBEAT
 static void OS_HeartbeatTask(void){
     while (1)
     {
         HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
-        vTaskDelay(pdMS_TO_TICKS(1000));
+        vTaskDelay(pdMS_TO_TICKS(3000));
+    }
+    return;
+}
+#endif
+static void OS_WatchDogResetTask(void){
+    while (1)
+    {
+    	//HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
+        vTaskDelay(pdMS_TO_TICKS(900));
+        HAL_IWDG_Refresh(&hiwdg);
     }
     return;
 }
