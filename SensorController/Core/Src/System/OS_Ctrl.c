@@ -21,7 +21,7 @@
 #include "Sensors/imu.h"
 #include "Sensors/pressure.h"
 #include "Peripherals/usart.h"
-#include "Peripherals/watchdog.h"
+#include "System/watchdog.h"
 
 /* Global Variables */
 QueueHandle_t     ROSReaderQueue;

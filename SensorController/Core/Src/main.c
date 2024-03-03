@@ -26,9 +26,11 @@
 #include "FreeRTOS.h"
 #include "task.h"
 #include "System/OS_Ctrl.h"
+#include "System/watchdog.h"
 #include "Peripherals/usart.h"
 #include "Peripherals/dma.h"
 #include "Peripherals/i2c.h"
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -66,16 +68,15 @@ ETH_DMADescTypeDef DMATxDscrTab[ETH_TX_DESC_CNT] __attribute__((section(".TxDecr
 ETH_TxPacketConfig TxConfig;
 
 ETH_HandleTypeDef heth;
+
 IWDG_HandleTypeDef hiwdg;
-
-/* Declared Elsewhere
-I2C_HandleTypeDef hi2c1;
-UART_HandleTypeDef huart2;
-UART_HandleTypeDef huart3;
-DMA_HandleTypeDef hdma_usart3_rx;
-DMA_HandleTypeDef hdma_usart3_tx;
+/*  Declared Elsewhere
+	I2C_HandleTypeDef hi2c1;
+	UART_HandleTypeDef huart2;
+	UART_HandleTypeDef huart3;
+	DMA_HandleTypeDef hdma_usart3_rx;
+	DMA_HandleTypeDef hdma_usart3_tx;
 */
-
 osThreadId defaultTaskHandle;
 /* USER CODE BEGIN PV */
 
@@ -85,14 +86,6 @@ osThreadId defaultTaskHandle;
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_ETH_Init(void);
-/*
-static void MX_DMA_Init(void);
-static void MX_USART3_UART_Init(void);
-static void MX_I2C1_Init(void);
-
-static void MX_USART2_UART_Init(void);
-*/
-static void MX_IWDG_Init(void);
 void StartDefaultTask(void const * argument);
 
 /* USER CODE BEGIN PFP */
@@ -133,15 +126,12 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_DMA_Init();
-  MX_USART3_UART_Init();
-  MX_I2C1_Init();
   MX_ETH_Init();
-  MX_USART2_UART_Init();
-  MX_IWDG_Init();
   /* USER CODE BEGIN 2 */
   HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, GPIO_PIN_SET);
   UART_Init();
   I2C_Init();
+  Watchdog_Init();
   OS_SemaphoreInit();
   OS_MutexesInit();
   OS_QueuesInit();
@@ -293,36 +283,6 @@ static void MX_ETH_Init(void)
   /* USER CODE BEGIN ETH_Init 2 */
 
   /* USER CODE END ETH_Init 2 */
-
-}
-
-/**
-  * @brief IWDG Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_IWDG_Init(void)
-{
-
-  /* USER CODE BEGIN IWDG_Init 0 */
-
-  /* USER CODE END IWDG_Init 0 */
-
-  /* USER CODE BEGIN IWDG_Init 1 */
-
-  /* USER CODE END IWDG_Init 1 */
-  hiwdg.Instance = IWDG;
-  // One second timer reset time
-  hiwdg.Init.Prescaler = IWDG_PRESCALER_64;
-  hiwdg.Init.Window = 499;
-  hiwdg.Init.Reload = 499;
-  if (HAL_IWDG_Init(&hiwdg) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN IWDG_Init 2 */
-
-  /* USER CODE END IWDG_Init 2 */
 
 }
 

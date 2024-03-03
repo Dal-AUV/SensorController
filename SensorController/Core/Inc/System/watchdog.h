@@ -15,12 +15,11 @@
 extern IWDG_HandleTypeDef hiwdg;
 
 #ifndef WATCHDOG_H
+
+void Watchdog_Init(void);
+void MX_IWDG_Init(void);
+
+
 #define WATCHDOG_H
-
-
-
-
-
-
 
 #endif
