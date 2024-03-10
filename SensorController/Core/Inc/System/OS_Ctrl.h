@@ -34,6 +34,7 @@ extern QueueHandle_t     IMU_ReaderQueue;
 extern QueueHandle_t     PRESSURE_ReaderQueue;
 
 extern SemaphoreHandle_t ROSReaderSemphr; 
+extern SemaphoreHandle_t I2CCommandSemphr;
 /**
  * @brief Initalize all tasks run by the RTOS kernel
  */

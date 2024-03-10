@@ -21,13 +21,12 @@
 extern I2C_HandleTypeDef hi2c1;
 //const uint16_t LSM6DS3_ADDR = 1101010b; //7th LSB driven by the SDO/SA0 Pin p.34
 
-#define LSM6DS3_ADDR 0b1101011 //7th bit is set to SA0 Pin (GND), so we could use two addresses and dynamically change which one
-
 #define DELAY_COUNT 5000
 #define MAX_I2C_TRIAL_COUNT 10
 #define ACCEL_ONLY_ENABLE 0
 #define GYRO_ONLY_ENABLE 1
 #define BOTH_ENABLE 2
+#define I2C_SEMPHR_BLOCK 1000
 
 /*-------------------------- Register Defines ----------------------- */
 
@@ -83,22 +82,6 @@ typedef struct {
 /* Public Functions */
 void I2C_Init(void);
 
-/* ----- Data processing functions ----- */
-
-/**
- * @brief Reads acceleration registers and stores register data in struct
- * @param dev pointer to sensor struct
- * @param accelData float buffer to hold acceleration data output
- */
-HAL_StatusTypeDef LSM6DS3_ReadAccel(DAT_SENSOR *dev, float accelData[3]);
-
-/**
- * @brief Reads the temperature registers and stores in struct
- * @param dev pointer to sensor struct
- */
-HAL_StatusTypeDef LSM6DS3_ReadTemp(DAT_SENSOR * dev);
-
-HAL_StatusTypeDef LSM6DS3_Init(DAT_SENSOR * dev, I2C_HandleTypeDef * i2cHandle);
 
 /* ------ Low level functions ------ */
 
@@ -110,14 +93,14 @@ HAL_StatusTypeDef LSM6DS3_Init(DAT_SENSOR * dev, I2C_HandleTypeDef * i2cHandle);
  * @param number of bytes to be read
  * @return HAL_OK if no errors
  */
-HAL_StatusTypeDef DAT_ReadRegisters(DAT_SENSOR *dev,uint8_t reg, uint8_t * data, uint8_t length);
+HAL_StatusTypeDef DAT_ReadRegisters(DAT_SENSOR *dev,uint8_t reg, uint8_t * data, uint8_t length, uint8_t blockTime);
 /**
  * @brief Function to handle 1-byte write requests to a specific register on board the IMU
  * @param dev struct for handle
  * @param reg internal address of register we weant to we want to read from
  * @param data pointer to write data from
  */
-HAL_StatusTypeDef DAT_WriteRegisters(DAT_SENSOR *dev,uint8_t reg, uint8_t * data);
+HAL_StatusTypeDef DAT_WriteRegister(DAT_SENSOR *dev,uint8_t reg, uint8_t * data, uint8_t length, uint8_t blockTime);
 
 /**
  * @brief check to see if the sensor will return an ACK signal

@@ -29,6 +29,8 @@ QueueHandle_t     IMU_ReaderQueue;
 QueueHandle_t     PRESSURE_ReaderQueue;
 
 SemaphoreHandle_t ROSReaderSemphr;
+SemaphoreHandle_t I2CCommandSemphr;
+
 
 
 #define TEST_IMU
@@ -81,7 +83,10 @@ void OS_QueuesInit(void){
 
 void OS_SemaphoreInit(void){
     ROSReaderSemphr = xSemaphoreCreateBinary();
+    I2CCommandSemphr = xSemaphoreCreateMutex();
+
     xSemaphoreGive(ROSReaderSemphr);
+    xSemaphoreGive(I2CCommandSemphr);
 
     return;
 }
