@@ -41,9 +41,8 @@ HAL_StatusTypeDef DAT_SensorIsReady(DAT_SENSOR *dev) {
 }
 
 /* Low level HAL Function replacements for use in tasks etc. abstracts some HAL constants out */
-// TODO just use sempaphore stuff lol
 
-HAL_StatusTypeDef DAT_ReadRegisters(DAT_SENSOR *dev,uint8_t reg, uint8_t * data, uint8_t length, uint8_t blockTime){
+HAL_StatusTypeDef DAT_ReadRegisters(DAT_SENSOR *dev,uint8_t reg, uint8_t * data, uint8_t length, uint32_t blockTime){
 	HAL_StatusTypeDef ret;
 	xSemaphoreTake(I2CCommandSemphr, pdMS_TO_TICKS(blockTime));
 	ret = HAL_I2C_Mem_Read(dev->I2C_HANDLE,(dev->SENSOR_ADDR << 1), reg, I2C_MEMADD_SIZE_8BIT, data, length, HAL_MAX_DELAY);
@@ -51,7 +50,7 @@ HAL_StatusTypeDef DAT_ReadRegisters(DAT_SENSOR *dev,uint8_t reg, uint8_t * data,
 	return ret;
 }
 
-HAL_StatusTypeDef DAT_WriteRegister(DAT_SENSOR *dev,uint8_t reg, uint8_t * data, uint8_t length, uint8_t blockTime){
+HAL_StatusTypeDef DAT_WriteRegister(DAT_SENSOR *dev,uint8_t reg, uint8_t * data, uint8_t length, uint32_t blockTime){
 	HAL_StatusTypeDef ret;
 	xSemaphoreTake(I2CCommandSemphr, pdMS_TO_TICKS(blockTime));
 	ret = HAL_I2C_Mem_Write(dev->I2C_HANDLE, (dev->SENSOR_ADDR << 1), reg, I2C_MEMADD_SIZE_8BIT, data, length, HAL_MAX_DELAY);

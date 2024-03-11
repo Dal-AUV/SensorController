@@ -18,7 +18,7 @@
 #include "semphr.h"
 /* Macros */
 // Task Config
-#define WATCHDOG_PRI	tskIDLE_PRIORITY + 3
+#define WATCHDOG_PRI	configMAX_PRIORITIES - 1
 #define IMU_PRI         tskIDLE_PRIORITY + 2
 #define PRESSURE_PRI    tskIDLE_PRIORITY + 1
 

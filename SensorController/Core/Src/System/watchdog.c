@@ -7,6 +7,7 @@
 
 #include "System/watchdog.h"
 
+IWDG_HandleTypeDef hiwdg;
 
 void Watchdog_Init()
 {

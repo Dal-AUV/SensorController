@@ -68,15 +68,6 @@ typedef struct {
 	//handle pointer
 	I2C_HandleTypeDef *I2C_HANDLE;
 	uint8_t SENSOR_ADDR;//8 bit i2c address
-
-	//data buffers
-	//TODO remove these and rename register
-#ifdef generalize
-	float gyro_data[3]; //x, y ,z
-	float accel_data[3];
-	float temp_data;
-#endif
-
 }DAT_SENSOR;
 
 /* Public Functions */
@@ -93,14 +84,14 @@ void I2C_Init(void);
  * @param number of bytes to be read
  * @return HAL_OK if no errors
  */
-HAL_StatusTypeDef DAT_ReadRegisters(DAT_SENSOR *dev,uint8_t reg, uint8_t * data, uint8_t length, uint8_t blockTime);
+HAL_StatusTypeDef DAT_ReadRegisters(DAT_SENSOR *dev,uint8_t reg, uint8_t * data, uint8_t length, uint32_t blockTime);
 /**
  * @brief Function to handle 1-byte write requests to a specific register on board the IMU
  * @param dev struct for handle
  * @param reg internal address of register we weant to we want to read from
  * @param data pointer to write data from
  */
-HAL_StatusTypeDef DAT_WriteRegister(DAT_SENSOR *dev,uint8_t reg, uint8_t * data, uint8_t length, uint8_t blockTime);
+HAL_StatusTypeDef DAT_WriteRegister(DAT_SENSOR *dev,uint8_t reg, uint8_t * data, uint8_t length, uint32_t blockTime);
 
 /**
  * @brief check to see if the sensor will return an ACK signal
