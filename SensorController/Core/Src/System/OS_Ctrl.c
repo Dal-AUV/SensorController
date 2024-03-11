@@ -22,6 +22,7 @@
 #include "Sensors/pressure.h"
 #include "Interfaces/ros_if.h"
 #include "Peripherals/usart.h"
+#include "System/watchdog.h"
 
 /* Global Variables */
 QueueHandle_t     ROS_ReaderQueue;
@@ -29,11 +30,16 @@ QueueHandle_t 	  ROS_WriterQueue;
 QueueHandle_t     IMU_ReaderQueue;
 QueueHandle_t     PRESSURE_ReaderQueue;
 
+SemaphoreHandle_t ROSReaderSemphr;
+SemaphoreHandle_t I2CCommandSemphr;
 SemaphoreHandle_t ROS_WriterSem;
 
+
+#define TEST_IMU
+#define HEARTBEAT
 /* Private Prototypes */
 static void OS_HeartbeatTask(void);
-
+static void OS_WatchDogResetTask(void);
 /* Public Functions */
 void OS_TasksInit(void){
     /* Added task to Kernel List */
@@ -68,10 +74,16 @@ void OS_TasksInit(void){
         return;
 	}
     #endif
+	#ifdef HEARTBEAT
     if(pdPASS != xTaskCreate((TaskFunction_t)OS_HeartbeatTask,"OS Heartbeat",
             configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY,NULL)){
         return;
     }
+	#endif
+    if(pdPASS != xTaskCreate((TaskFunction_t)OS_WatchDogResetTask,"OS Watchdog Reset",
+                configMINIMAL_STACK_SIZE, NULL, WATCHDOG_PRI,NULL)){
+            return;
+        }
     return;
 }
 
@@ -84,7 +96,12 @@ void OS_QueuesInit(void){
 }
 
 void OS_SemaphoreInit(void){
+    ROSReaderSemphr = xSemaphoreCreateBinary();
+    I2CCommandSemphr = xSemaphoreCreateMutex();
     ROS_WriterSem = xSemaphoreCreateBinary();
+  
+    xSemaphoreGive(ROSReaderSemphr);
+    xSemaphoreGive(I2CCommandSemphr);
     xSemaphoreGive(ROS_WriterSem);
     return;
 }
@@ -95,11 +112,22 @@ void OS_MutexesInit(void){
 /* End of Public Functions */
 
 /* Private Functions */
+#ifdef HEARTBEAT
 static void OS_HeartbeatTask(void){
     while (1)
     {
         HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
-        vTaskDelay(pdMS_TO_TICKS(1000));
+        vTaskDelay(pdMS_TO_TICKS(3000));
+    }
+    return;
+}
+#endif
+static void OS_WatchDogResetTask(void){
+    while (1)
+    {
+    	//HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
+        vTaskDelay(pdMS_TO_TICKS(900));
+        HAL_IWDG_Refresh(&hiwdg);
     }
     return;
 }

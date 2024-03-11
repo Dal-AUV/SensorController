@@ -83,7 +83,6 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart){
 	if(huart == &huart3){
 		xSemaphoreGiveFromISR(ROS_WriterSem,NULL);
 	}
-
 	return;
 }
 // TODO [M.C] Add Error Callback ISR Servicing

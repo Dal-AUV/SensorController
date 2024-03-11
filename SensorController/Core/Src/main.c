@@ -26,9 +26,11 @@
 #include "FreeRTOS.h"
 #include "task.h"
 #include "System/OS_Ctrl.h"
+#include "System/watchdog.h"
 #include "Peripherals/usart.h"
 #include "Peripherals/dma.h"
 #include "Peripherals/i2c.h"
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -67,8 +69,14 @@ ETH_TxPacketConfig TxConfig;
 
 ETH_HandleTypeDef heth;
 
-extern I2C_HandleTypeDef hi2c1;
 
+/*  Declared Elsewhere
+	I2C_HandleTypeDef hi2c1;
+	UART_HandleTypeDef huart2;
+	UART_HandleTypeDef huart3;
+	DMA_HandleTypeDef hdma_usart3_rx;
+	DMA_HandleTypeDef hdma_usart3_tx;
+*/
 osThreadId defaultTaskHandle;
 /* USER CODE BEGIN PV */
 
@@ -103,7 +111,7 @@ int main(void)
   HAL_Init();
 
   /* USER CODE BEGIN Init */
-
+  //HAL_GPIO_TogglePin(LD3_GPIO_Port, LD3_Pin);
   /* USER CODE END Init */
 
   /* Configure the system clock */
@@ -116,10 +124,11 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_DMA_Init();
-
   /* USER CODE BEGIN 2 */
+  HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, GPIO_PIN_SET);
   UART_Init();
   I2C_Init();
+  Watchdog_Init();
   OS_SemaphoreInit();
   OS_MutexesInit();
   OS_QueuesInit();
@@ -156,8 +165,9 @@ void SystemClock_Config(void)
   /** Initializes the RCC Oscillators according to the specified parameters
   * in the RCC_OscInitTypeDef structure.
   */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_LSI|RCC_OSCILLATORTYPE_HSE;
   RCC_OscInitStruct.HSEState = RCC_HSE_BYPASS;
+  RCC_OscInitStruct.LSIState = RCC_LSI_ON;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
   RCC_OscInitStruct.PLL.PLLM = 4;

@@ -18,6 +18,9 @@
 #include "semphr.h"
 /* Macros */
 // Task Config
+
+#define WATCHDOG_PRI	configMAX_PRIORITIES - 1
+#define IMU_PRI         tskIDLE_PRIORITY + 2
 #define ROS_WRITER_PRI  tskIDLE_PRIORITY + 4
 #define ROS_READER_PRI  tskIDLE_PRIORITY + 4
 #define IMU_PRI         tskIDLE_PRIORITY + 2       
@@ -33,11 +36,15 @@
 
 /* External Variables */
 extern QueueHandle_t     ROS_ReaderQueue;
-extern QueueHandle_t 	 ROS_WriterQueue;
+extern QueueHandle_t 	   ROS_WriterQueue;
 extern QueueHandle_t     IMU_ReaderQueue;
 extern QueueHandle_t     PRESSURE_ReaderQueue;
 
+
+extern SemaphoreHandle_t ROSReaderSemphr; 
+extern SemaphoreHandle_t I2CCommandSemphr;
 extern SemaphoreHandle_t ROS_WriterSem;
+
 /**
  * @brief Initalize all tasks run by the RTOS kernel
  */
