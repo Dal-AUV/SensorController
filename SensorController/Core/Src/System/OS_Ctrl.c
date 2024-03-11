@@ -20,17 +20,19 @@
 #include "System/OS_Ctrl.h"
 #include "Sensors/imu.h"
 #include "Sensors/pressure.h"
+#include "Interfaces/ros_if.h"
 #include "Peripherals/usart.h"
 #include "System/watchdog.h"
 
 /* Global Variables */
-QueueHandle_t     ROSReaderQueue;
+QueueHandle_t     ROS_ReaderQueue;
+QueueHandle_t 	  ROS_WriterQueue;
 QueueHandle_t     IMU_ReaderQueue;
 QueueHandle_t     PRESSURE_ReaderQueue;
 
 SemaphoreHandle_t ROSReaderSemphr;
 SemaphoreHandle_t I2CCommandSemphr;
-
+SemaphoreHandle_t ROS_WriterSem;
 
 
 #define TEST_IMU
@@ -41,6 +43,17 @@ static void OS_WatchDogResetTask(void);
 /* Public Functions */
 void OS_TasksInit(void){
     /* Added task to Kernel List */
+
+	if(pdPASS != xTaskCreate((TaskFunction_t)ROS_ReaderTask,"ROS Reader",
+		ROS_READER_STACK_SIZE, NULL, ROS_READER_PRI, NULL)){
+        return;
+	}
+
+    if(pdPASS != xTaskCreate((TaskFunction_t)ROS_WriterTask,"ROS Writer",
+        ROS_WRITER_STACK_SIZE, NULL, ROS_WRITER_PRI, NULL)){
+        return;
+	}
+
     #ifdef TEST_IMU
     if(pdPASS != xTaskCreate((TaskFunction_t)IMU_Task,"IMU Task",
         IMU_STACK_SIZE, NULL, IMU_PRI, NULL)){
@@ -75,7 +88,8 @@ void OS_TasksInit(void){
 }
 
 void OS_QueuesInit(void){
-    ROSReaderQueue        = xQueueCreate(MAX_USART_QUEUE_SIZE, sizeof(uint8_t));
+    ROS_ReaderQueue       = xQueueCreate(MAX_USART_QUEUE_SIZE, sizeof(uint8_t));
+    ROS_WriterQueue		  = xQueueCreate(ROS_WRITER_QUEUE_LEN, sizeof(ROS_Transport_t));
     IMU_ReaderQueue       = xQueueCreate(IMU_QUEUE_SIZE, sizeof(uint8_t));
     PRESSURE_ReaderQueue  = xQueueCreate(PRESSURE_QUEUE_SIZE, sizeof(uint8_t));
     return;
@@ -84,10 +98,11 @@ void OS_QueuesInit(void){
 void OS_SemaphoreInit(void){
     ROSReaderSemphr = xSemaphoreCreateBinary();
     I2CCommandSemphr = xSemaphoreCreateMutex();
-
+    ROS_WriterSem = xSemaphoreCreateBinary();
+  
     xSemaphoreGive(ROSReaderSemphr);
     xSemaphoreGive(I2CCommandSemphr);
-
+    xSemaphoreGive(ROS_WriterSem);
     return;
 }
 
